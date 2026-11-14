@@ -71,10 +71,13 @@ class LoginLogoutTests(TestCase):
         response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": PASSWORD})
         self.assertRedirects(response, reverse("accounts:profile"))
 
-    def test_mauvais_mot_de_passe_refuse(self):
+    def test_mauvais_mot_de_passe_refuse_avec_un_message(self):
         response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": "faux"})
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("_auth_user_id", self.client.session)
+        # Le message doit être VISIBLE dans la page, pas seulement présent dans le formulaire
+        self.assertContains(response, 'role="alert"')
+        self.assertContains(response, "Nom d&#x27;utilisateur ou mot de passe incorrect.")
 
     def test_deconnexion_refuse_get(self):
         self.client.force_login(self.user)
