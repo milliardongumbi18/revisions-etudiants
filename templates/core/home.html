@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="text-center py-10">
+  <h1 class="text-4xl font-bold text-slate-900">Révise mieux, pas plus longtemps.</h1>
+  <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+    Importe tes cours, génère des quiz automatiquement et laisse l'application
+    organiser tes révisions selon ton emploi du temps et tes examens.
+  </p>
+</section>
+
+<section class="grid gap-6 md:grid-cols-3 mt-6">
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <h2 class="font-semibold text-indigo-700">Quiz générés par IA</h2>
+    <p class="mt-2 text-sm text-slate-600">QCM et questions courtes créés à partir de tes PDF et de tes notes.</p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <h2 class="font-semibold text-indigo-700">Répétition espacée</h2>
+    <p class="mt-2 text-sm text-slate-600">Les questions ratées reviennent plus souvent, jusqu'à ce que tu les maîtrises.</p>
+  </div>
+  <div class="bg-white rounded-xl border border-slate-200 p-6">
+    <h2 class="font-semibold text-indigo-700">Planning automatique</h2>
+    <p class="mt-2 text-sm text-slate-600">Un planning équilibré selon tes jours chargés, tes jours libres et tes examens.</p>
+  </div>
+</section>
+{% endblock %}

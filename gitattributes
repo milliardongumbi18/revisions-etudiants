@@ -1,0 +1,5 @@
+# Git gère les fins de ligne automatiquement
+* text=auto
+
+# Les scripts bash doivent utiliser LF
+*.sh text eol=lf
