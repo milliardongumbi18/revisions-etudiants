@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Mon profil · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16">
+  <div class="grid gap-8 md:grid-cols-[18rem_1fr]">
+
+    <aside class="animate-in">
+      <div class="card text-center">
+        <div class="avatar mx-auto" aria-hidden="true">{{ user.username|slice:":2"|upper }}</div>
+        <h1 class="mt-4 text-2xl font-bold">{{ user.get_full_name|default:user.username }}</h1>
+        <p class="text-muted text-sm">@{{ user.username }}</p>
+        {% if user.university %}
+          <p class="mt-4"><span class="badge">{{ user.university }}</span></p>
+        {% endif %}
+        <p class="text-muted mt-4 text-sm">Membre depuis {{ user.date_joined|date:"F Y" }}</p>
+      </div>
+    </aside>
+
+    <div class="animate-in" style="--delay: 120ms">
+      <div class="card">
+        <h2 class="text-xl font-bold">Mes informations</h2>
+        <p class="text-muted mt-1 text-sm">Ces informations restent privées.</p>
+
+        <form method="post" class="mt-6 grid gap-5 md:grid-cols-2" data-auth-form novalidate>
+          {% csrf_token %}
+          {% include "partials/_form_errors.html" %}
+          {% for field in form %}
+            {% include "partials/_field.html" %}
+          {% endfor %}
+          <div class="flex justify-end md:col-span-2">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

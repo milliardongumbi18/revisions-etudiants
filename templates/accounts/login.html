@@ -1,0 +1,25 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Connexion · Révisions Étudiants{% endblock %}
+
+{% block auth_content %}
+  <p class="eyebrow">Connexion</p>
+  <h1 class="mt-2 text-3xl font-extrabold">Bon retour 👋</h1>
+  <p class="text-muted mt-2">Connecte-toi pour reprendre tes révisions.</p>
+
+  <form method="post" class="mt-8 grid gap-5" data-auth-form novalidate>
+    {% csrf_token %}
+    {% include "partials/_form_errors.html" %}
+    {% for field in form %}
+      {% include "partials/_field.html" %}
+    {% endfor %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn-primary mt-2 w-full">Se connecter</button>
+  </form>
+{% endblock %}
+
+{% block auth_footer %}
+  <p class="text-muted mt-6 text-center text-sm">
+    Pas encore de compte ? <a href="{% url 'accounts:signup' %}" class="link">Crée-le en une minute</a>
+  </p>
+{% endblock %}
