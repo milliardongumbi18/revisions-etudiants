@@ -651,6 +651,7 @@
   .prose-notes { max-width: 70ch; font-size: 1.05rem; line-height: 1.8; }
   .prose-notes p + p { margin-top: 1em; }
 
+
   /* Pastilles de couleur (boutons radio cachés visuellement) */
   .swatches { display: flex; flex-wrap: wrap; gap: .75rem; }
   .swatch { position: relative; cursor: pointer; }

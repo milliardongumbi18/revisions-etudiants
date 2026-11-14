@@ -1,7 +1,9 @@
 
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="fr" data-theme="light">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +13,7 @@
 
   <meta name="description" content="Quiz générés par IA à partir de tes cours, répétition espacée et planning de révisions adapté à ton emploi du temps.">
 
-  {# Choix du thème AVANT l'affichage de la page : évite le « flash » clair → sombre #}
+  {# Choix du thème AVANT l'affichage de la page #}
   <script>
     (function () {
       var root = document.documentElement;
@@ -38,7 +40,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400..700&display=swap">
 
-  {# Tailwind via CDN : TEMPORAIRE (mise en page uniquement), CLI Tailwind avant la fin de la V1 #}
+  {# Tailwind via CDN : temporaire #}
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
   <link rel="stylesheet" href="{% static 'css/app.css' %}">

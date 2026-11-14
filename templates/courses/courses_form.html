@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Modifier le cours{% else %}Nouveau cours{% endif %} · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16">
+  <div class="animate-in mx-auto max-w-2xl">
+
+    <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'courses:list' %}{% endif %}" class="back-link">← Retour</a>
+
+    <div class="card auth-card mt-4">
+      <p class="eyebrow">{% if object %}Modification{% else %}Nouveau cours{% endif %}</p>
+      <h1 class="mt-2 text-3xl font-extrabold">{% if object %}Modifier le cours{% else %}Crée un cours{% endif %}</h1>
+
+      <form method="post" class="mt-8 grid gap-5" data-auth-form novalidate>
+        {% csrf_token %}
+        {% include "partials/_form_errors.html" %}
+        {% include "partials/_field.html" with field=form.title %}
+        {% include "partials/_field.html" with field=form.description %}
+        {% include "partials/_field.html" with field=form.outline %}
+
+        <fieldset class="field">
+          <legend class="label">{{ form.color.label }}</legend>
+          <div class="swatches mt-1">
+            {% for radio in form.color %}
+              <label class="swatch" data-color="{{ radio.data.value }}" title="{{ radio.choice_label }}">
+                {{ radio.tag }}
+                <span aria-hidden="true"></span>
+                <span class="sr-only">{{ radio.choice_label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <div class="mt-2 flex justify-end gap-3">
+          <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'courses:list' %}{% endif %}" class="btn btn-ghost">Annuler</a>
+          <button type="submit" class="btn btn-primary">{% if object %}Enregistrer{% else %}Créer le cours{% endif %}</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

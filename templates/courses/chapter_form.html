@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Modifier le chapitre{% else %}Nouveau chapitre{% endif %} · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16" data-color="{{ course.color }}">
+  <div class="animate-in mx-auto max-w-3xl">
+
+    <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{{ course.get_absolute_url }}{% endif %}" class="back-link">← {{ course.title }}</a>
+
+    <div class="card auth-card mt-4">
+      <p class="eyebrow">{{ course.title }}</p>
+      <h1 class="mt-2 text-3xl font-extrabold">{% if object %}Modifier le chapitre{% else %}Nouveau chapitre{% endif %}</h1>
+
+      <form method="post" class="mt-8 grid gap-5" data-auth-form novalidate>
+        {% csrf_token %}
+        {% include "partials/_form_errors.html" %}
+        {% include "partials/_field.html" with field=form.title %}
+        {% include "partials/_field.html" with field=form.notes %}
+        <div class="mt-2 flex justify-end gap-3">
+          <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{{ course.get_absolute_url }}{% endif %}" class="btn btn-ghost">Annuler</a>
+          <button type="submit" class="btn btn-primary">{% if object %}Enregistrer{% else %}Ajouter le chapitre{% endif %}</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
