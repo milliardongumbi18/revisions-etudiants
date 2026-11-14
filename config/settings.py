@@ -111,7 +111,8 @@ USE_TZ = True
 # --- Fichiers statiques ----------------------------------------------------------
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"  # où collectstatic rassemble les fichiers
+STATIC_ROOT = BASE_DIR / "staticfiles"     # où collectstatic rassemble tout (production)
+STATICFILES_DIRS = [BASE_DIR / "static"]   # nos fichiers à nous (CSS, JS)
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
