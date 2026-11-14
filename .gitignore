@@ -1,0 +1,17 @@
+# Environnement et secrets
+.venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Éditeur / système
+.vscode/
+Thumbs.db
+.DS_Store
