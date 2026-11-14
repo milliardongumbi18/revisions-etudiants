@@ -6,5 +6,6 @@ admin.site.site_title = "Révisions Étudiants"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("compte/", include("accounts.urls")),
     path("", include("core.urls")),
 ]

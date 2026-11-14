@@ -1,0 +1,28 @@
+# GitHub lance ce fichier à chaque Pull Request et à chaque push sur main.
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: cle-uniquement-pour-la-ci   # pas un vrai secret : base de test jetable
+      DEBUG: "True"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+      - name: Vérifier la configuration
+        run: python manage.py check
+      - name: Vérifier qu'aucune migration n'a été oubliée
+        run: python manage.py makemigrations --check --dry-run
+      - name: Lancer les tests
+        run: python manage.py test

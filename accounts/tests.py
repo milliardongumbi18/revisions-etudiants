@@ -2,8 +2,10 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
 
 User = get_user_model()
+PASSWORD = "Kinshasa-Revise-2026!"
 
 
 class UserModelTests(TestCase):
@@ -19,6 +21,103 @@ class UserModelTests(TestCase):
 
     def test_la_base_bloque_un_doublon_meme_sans_passer_par_save(self):
         User.objects.create_user("awa", email="awa@exemple.cd", password="x")
-        # bulk_create n'appelle pas save() : c'est donc la contrainte en base qui doit bloquer.
         with self.assertRaises(IntegrityError), transaction.atomic():
             User.objects.bulk_create([User(username="awa2", email="AWA@Exemple.cd")])
+
+
+class SignupTests(TestCase):
+    def donnees(self, **modifs):
+        data = {
+            "username": "awa",
+            "email": "Awa@Exemple.cd",
+            "university": "UNIKIN",
+            "program": "L2 Informatique",
+            "password1": PASSWORD,
+            "password2": PASSWORD,
+        }
+        data.update(modifs)
+        return data
+
+    def test_page_inscription_s_affiche(self):
+        response = self.client.get(reverse("accounts:signup"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/signup.html")
+
+    def test_inscription_cree_le_compte_et_connecte(self):
+        response = self.client.post(reverse("accounts:signup"), self.donnees())
+        self.assertRedirects(response, reverse("accounts:profile"))
+
+        user = User.objects.get(username="awa")
+        self.assertEqual(user.email, "awa@exemple.cd")
+        self.assertNotEqual(user.password, PASSWORD)      # jamais en clair
+        self.assertTrue(user.check_password(PASSWORD))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+
+    def test_email_deja_utilise_refuse_quelle_que_soit_la_casse(self):
+        User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        response = self.client.post(
+            reverse("accounts:signup"), self.donnees(username="awa2", email="AWA@EXEMPLE.CD")
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "email", "Un compte utilise déjà cette adresse e-mail.")
+        self.assertEqual(User.objects.count(), 1)
+
+
+class LoginLogoutTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+
+    def test_connexion_redirige_vers_le_profil(self):
+        response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": PASSWORD})
+        self.assertRedirects(response, reverse("accounts:profile"))
+
+    def test_mauvais_mot_de_passe_refuse(self):
+        response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": "faux"})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_deconnexion_refuse_get(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("accounts:logout"))
+        self.assertEqual(response.status_code, 405)   # méthode non autorisée
+
+    def test_deconnexion_en_post(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("accounts:logout"))
+        self.assertRedirects(response, reverse("core:home"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
+class ProfileTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        User.objects.create_user("bob", email="bob@exemple.cd", password=PASSWORD)
+
+    def donnees(self, **modifs):
+        data = {
+            "first_name": "Awa",
+            "last_name": "Mbuyi",
+            "email": "awa@exemple.cd",
+            "university": "UCC",
+            "program": "L3 Informatique",
+        }
+        data.update(modifs)
+        return data
+
+    def test_profil_exige_une_connexion(self):
+        url = reverse("accounts:profile")
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={url}")
+
+    def test_modification_du_profil(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("accounts:profile"), self.donnees())
+        self.assertRedirects(response, reverse("accounts:profile"))
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.university, "UCC")
+
+    def test_email_d_un_autre_compte_refuse(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("accounts:profile"), self.donnees(email="BOB@exemple.cd"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "email", "Un compte utilise déjà cette adresse e-mail.")
