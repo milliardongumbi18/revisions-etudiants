@@ -40,9 +40,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # Apps du projet
+        # Apps du projet
     "core",
     "accounts",
+    "courses",
 ]
 
 MIDDLEWARE = [
@@ -98,6 +99,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# Où aller selon la situation (noms d'URL, pas de chemins en dur)
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "accounts:profile"   # deviendra le tableau de bord plus tard
+LOGOUT_REDIRECT_URL = "core:home"
 
 
 # --- Langue et heure -------------------------------------------------------------
