@@ -3,7 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from services.tests import make_pdf
+from services.tests import make_pdf, make_pdf_with_bookmarks
 
 from .models import Chapter, Course
 
@@ -120,3 +120,20 @@ class ChapterFileTests(CourseTestCase):
         chapter = Chapter.objects.create(course=self.course_bob, title="Alcanes", notes="...", order=1)
         response = self.client.get(reverse("courses:chapter_file", args=[chapter.pk]))
         self.assertEqual(response.status_code, 404)
+        
+
+class CourseImportTests(CourseTestCase):
+    def test_import_cree_un_chapitre_par_signet(self):
+        pdf = make_pdf_with_bookmarks([("Les sources du droit", "Texte un"), ("Les contrats", "Texte deux")])
+        url = reverse("courses:import", args=[self.course_awa.pk])
+        response = self.client.post(url, {"fichier": SimpleUploadedFile("cours.pdf", pdf)})
+
+        self.assertRedirects(response, self.course_awa.get_absolute_url())
+        chapitres = list(self.course_awa.chapters.values_list("title", "order"))
+        self.assertEqual(chapitres, [("Les sources du droit", 1), ("Les contrats", 2)])
+
+    def test_import_dans_le_cours_d_un_autre_impossible(self):
+        url = reverse("courses:import", args=[self.course_bob.pk])
+        response = self.client.post(url, {"fichier": SimpleUploadedFile("cours.pdf", make_pdf("Intrus"))})
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(self.course_bob.chapters.exists())
