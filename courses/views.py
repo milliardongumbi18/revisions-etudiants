@@ -1,14 +1,16 @@
 from functools import cached_property
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.db.models import Count, Max
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 
-from .forms import ChapterForm, CourseForm
+from .forms import ChapterForm, CourseForm, CourseImportForm
 from .models import Chapter, Course
 
 
@@ -29,6 +31,11 @@ class OwnedChapterMixin(LoginRequiredMixin):
 
     def get_queryset(self):
         return Chapter.objects.filter(course__owner=self.request.user).select_related("course")
+
+
+def prochaine_position(course):
+    """Position du prochain chapitre (à la suite des existants)."""
+    return (course.chapters.aggregate(dernier=Max("order"))["dernier"] or 0) + 1
 
 
 # ------------------------------- Cours -------------------------------------
@@ -76,6 +83,41 @@ class CourseDeleteView(OwnedCourseMixin, SuccessMessageMixin, DeleteView):
         return context
 
 
+class CourseImportView(LoginRequiredMixin, FormView):
+    """Importe un cours complet : un fichier → plusieurs chapitres d'un coup."""
+
+    form_class = CourseImportForm
+    template_name = "courses/course_import.html"
+
+    @cached_property
+    def course(self):
+        return get_object_or_404(Course, pk=self.kwargs["pk"], owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["course"] = self.course
+        return context
+
+    def form_valid(self, form):
+        debut = prochaine_position(self.course)
+        chapitres = [
+            Chapter(course=self.course, title=titre[:200], notes=texte, order=debut + index)
+            for index, (titre, texte) in enumerate(form.sections)
+        ]
+        # Tout ou rien : si une insertion échoue, aucun chapitre n'est créé
+        with transaction.atomic():
+            Chapter.objects.bulk_create(chapitres)
+            self.course.save(update_fields=["updated_at"])
+
+        nombre = len(chapitres)
+        messages.success(
+            self.request,
+            f"{nombre} chapitre{'s' if nombre > 1 else ''} importé{'s' if nombre > 1 else ''} "
+            f"depuis « {form.cleaned_data['fichier'].name} ».",
+        )
+        return redirect(self.course.get_absolute_url())
+
+
 # ------------------------------ Chapitres ----------------------------------
 
 class ChapterCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
@@ -94,8 +136,7 @@ class ChapterCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.course = self.course   # AVANT l'enregistrement : utilisé pour le chemin du fichier
-        dernier = self.course.chapters.aggregate(dernier=Max("order"))["dernier"] or 0
-        form.instance.order = dernier + 1
+        form.instance.order = prochaine_position(self.course)
         response = super().form_valid(form)
         self.course.save(update_fields=["updated_at"])
         return response
@@ -126,11 +167,10 @@ class ChapterUpdateView(OwnedChapterMixin, SuccessMessageMixin, UpdateView):
         return context
 
     def form_valid(self, form):
-        # Nom de l'ancien fichier, lu en base AVANT l'enregistrement
         ancien = Chapter.objects.filter(pk=self.object.pk).values_list("source_file", flat=True).first()
         response = super().form_valid(form)
         if ancien and ancien != self.object.source_file.name:
-            self.object.source_file.storage.delete(ancien)   # remplacé : on ne garde pas l'ancien
+            self.object.source_file.storage.delete(ancien)
         self.object.course.save(update_fields=["updated_at"])
         return response
 
@@ -152,10 +192,7 @@ class ChapterDeleteView(OwnedChapterMixin, SuccessMessageMixin, DeleteView):
 
 
 class ChapterFileView(OwnedChapterMixin, DetailView):
-    """
-    Ouverture du fichier source : propriétaire uniquement (OwnedChapterMixin),
-    puis redirection vers un lien SIGNÉ qui expire après 10 minutes.
-    """
+    """Fichier source : propriétaire uniquement, puis lien SIGNÉ valable 10 minutes."""
 
     def get(self, request, *args, **kwargs):
         chapter = self.get_object()

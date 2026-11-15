@@ -5,9 +5,11 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import MaxLengthValidator
 
 from core.forms import StyledFormMixin
-from services.documents import MAX_TEXT_CHARS, DocumentError, extract_text_from_upload
+from services.documents import MAX_TEXT_CHARS, DocumentError, extract_text_from_upload, split_document
 
 from .models import Chapter, Course
+
+ACCEPT_FICHIERS = ".pdf,.txt,application/pdf,text/plain"
 
 
 class CourseForm(StyledFormMixin, forms.ModelForm):
@@ -34,9 +36,7 @@ class ChapterForm(StyledFormMixin, forms.ModelForm):
         fields = ("title", "source_file", "notes")
         widgets = {
             "title": forms.TextInput(attrs={"placeholder": "Ex. Chapitre 1 — Introduction"}),
-            "source_file": forms.FileInput(
-                attrs={"class": "sr-only", "accept": ".pdf,.txt,application/pdf,text/plain"}
-            ),
+            "source_file": forms.FileInput(attrs={"class": "sr-only", "accept": ACCEPT_FICHIERS}),
             "notes": forms.Textarea(
                 attrs={"rows": 16, "placeholder": "Colle ou écris ici tes notes de cours…"}
             ),
@@ -66,3 +66,20 @@ class ChapterForm(StyledFormMixin, forms.ModelForm):
         if not cleaned.get("notes"):
             self.add_error("notes", "Écris tes notes ou importe un fichier.")
         return cleaned
+
+
+class CourseImportForm(StyledFormMixin, forms.Form):
+    """Import d'un cours complet : le fichier est découpé en chapitres (voir services/documents.py)."""
+
+    fichier = forms.FileField(
+        label="Fichier du cours",
+        widget=forms.FileInput(attrs={"class": "sr-only", "accept": ACCEPT_FICHIERS}),
+    )
+
+    def clean_fichier(self):
+        fichier = self.cleaned_data["fichier"]
+        try:
+            self.sections = split_document(fichier)   # [(titre, texte), ...]
+        except DocumentError as error:
+            raise forms.ValidationError(str(error))
+        return fichier

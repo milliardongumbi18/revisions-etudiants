@@ -924,3 +924,29 @@
     line-height: 1;
   }
 }
+/* ==========================================================================
+   Ajouts étape 6b : explications de l'import d'un cours complet
+   ========================================================================== */
+@layer components {
+  .import-steps { display: grid; gap: .75rem; }
+  .import-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    font-size: .92rem;
+    color: var(--muted);
+  }
+  .import-steps strong { color: var(--text); }
+  .step-dot {
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--course, var(--brand)) 15%, transparent);
+    color: var(--course, var(--brand));
+    font-size: .8rem;
+    font-weight: 700;
+  }
+}

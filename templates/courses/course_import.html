@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Importer un cours complet · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16" data-color="{{ course.color }}">
+  <div class="animate-in mx-auto max-w-2xl">
+
+    <a href="{{ course.get_absolute_url }}" class="back-link">← {{ course.title }}</a>
+
+    <div class="card auth-card mt-4">
+      <p class="eyebrow">{{ course.title }}</p>
+      <h1 class="mt-2 text-3xl font-extrabold">Importer un cours complet</h1>
+      <p class="text-muted mt-2">Envoie ton support de cours en un seul fichier : l'application le découpe en chapitres pour toi.</p>
+
+      <ul class="import-steps mt-6">
+        <li><span class="step-dot">1</span><span><strong>PDF avec signets</strong> (table des matières cliquable) : un chapitre par signet.</span></li>
+        <li><span class="step-dot">2</span><span><strong>Sans signets</strong> : un chapitre « Cours complet », découpé en parties s'il est très long.</span></li>
+        <li><span class="step-dot">3</span><span>Tu pourras ensuite <strong>renommer, corriger ou supprimer</strong> chaque chapitre.</span></li>
+      </ul>
+
+      {# enctype obligatoire : sans lui, le navigateur n'envoie PAS le fichier #}
+      <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-5" data-auth-form novalidate>
+        {% csrf_token %}
+        {% include "partials/_form_errors.html" %}
+
+        <div class="field">
+          <label class="dropzone" data-dropzone>
+            {{ form.fichier }}
+            <span class="icon-tile" style="--tile: var(--course)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5.5C2 4.7 2.7 4 3.5 4H9a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5h-6A1.5 1.5 0 0 1 2 16z"/><path d="M22 5.5c0-.8-.7-1.5-1.5-1.5H15a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5h6a1.5 1.5 0 0 0 1.5-1.5z"/></svg>
+            </span>
+            <span class="dropzone-file" data-dropzone-label>Glisse ton cours (PDF ou .txt) ici, ou clique pour le choisir</span>
+            <span class="help">10 Mo · 300 pages maximum · seul le texte est conservé</span>
+          </label>
+          {% for error in form.fichier.errors %}
+            <p class="field-error">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <a href="{{ course.get_absolute_url }}" class="btn btn-ghost">Annuler</a>
+          <button type="submit" class="btn btn-primary">Importer et découper</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
