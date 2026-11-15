@@ -174,3 +174,114 @@
     if (event.target === dialog) dialog.close();
   });
 })();
+
+/* ---------- 7. Dictée vocale (ajout étape 6c) ---------- */
+(() => {
+  "use strict";
+
+  // Chrome / Edge : webkitSpeechRecognition ; standard : SpeechRecognition ; Firefox : rien
+  const Reconnaissance = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const MESSAGES_ERREUR = {
+    "not-allowed": "Accès au micro refusé : autorise-le dans les réglages du navigateur (icône à gauche de l'adresse).",
+    "service-not-allowed": "Accès au micro refusé : autorise-le dans les réglages du navigateur.",
+    "audio-capture": "Aucun micro détecté sur cet appareil.",
+    "network": "La dictée a besoin d'une connexion internet.",
+  };
+
+  // Commandes vocales → ponctuation (« point » seul est ignoré : trop d'ambiguïté, ex. « point de vue »)
+  const ponctuer = (texte) =>
+    texte
+      .replace(/\s*point à la ligne\s*/gi, ".\n")
+      .replace(/\s*nouveau paragraphe\s*/gi, "\n\n")
+      .replace(/\s*à la ligne\s*/gi, "\n")
+      .replace(/\s*point d'interrogation/gi, " ?")
+      .replace(/\s*point d'exclamation/gi, " !")
+      .replace(/\s*virgule/gi, ",");
+
+  document.querySelectorAll("[data-dictation]").forEach((barre) => {
+    const zone = document.getElementById(barre.dataset.dictation);
+    const bouton = barre.querySelector("[data-dictation-toggle]");
+    const libelle = barre.querySelector("[data-dictation-label]");
+    const statut = barre.querySelector("[data-dictation-status]");
+    if (!Reconnaissance || !zone || !bouton) return;   // non pris en charge : la barre reste cachée
+    barre.hidden = false;
+
+    const reco = new Reconnaissance();
+    reco.lang = "fr-FR";
+    reco.continuous = true;        // ne s'arrête pas à la première phrase
+    reco.interimResults = true;    // aperçu pendant qu'on parle
+
+    let enEcoute = false;
+    let veutContinuer = false;     // Chrome coupe seul après un silence : on relance si l'utilisateur n'a pas arrêté
+    let erreur = "";
+
+    const afficherEtat = (actif) => {
+      enEcoute = actif;
+      bouton.classList.toggle("is-listening", actif);
+      bouton.setAttribute("aria-pressed", String(actif));
+      libelle.textContent = actif ? "Arrêter" : "Dicter";
+    };
+
+    // Insère le texte à la position du curseur (ou à la fin)
+    const inserer = (texte) => {
+      const debut = zone.selectionStart ?? zone.value.length;
+      const fin = zone.selectionEnd ?? zone.value.length;
+      const avant = zone.value.slice(0, debut);
+      const apres = zone.value.slice(fin);
+      texte = texte.replace(/^ +/, "");
+      const espace = avant && !/\s$/.test(avant) && !/^[\n,.?!]/.test(texte) ? " " : "";
+      const morceau = espace + texte;
+      zone.value = avant + morceau + apres;
+      const position = avant.length + morceau.length;
+      zone.setSelectionRange(position, position);
+    };
+
+    reco.addEventListener("result", (event) => {
+      let apercu = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const resultat = event.results[i];
+        if (resultat.isFinal) inserer(ponctuer(resultat[0].transcript));
+        else apercu += resultat[0].transcript;
+      }
+      statut.textContent = apercu ? `… ${apercu}` : "Je t'écoute…";
+    });
+
+    reco.addEventListener("error", (event) => {
+      if (event.error === "no-speech" || event.error === "aborted") return;   // silence : relance via "end"
+      veutContinuer = false;
+      erreur = MESSAGES_ERREUR[event.error] || "La dictée s'est arrêtée. Réessaie.";
+    });
+
+    reco.addEventListener("end", () => {
+      if (veutContinuer) {
+        try { reco.start(); return; } catch { /* déjà relancée */ }
+      }
+      afficherEtat(false);
+      statut.textContent = erreur;   // garde le message d'erreur visible, sinon efface
+      erreur = "";
+    });
+
+    bouton.addEventListener("click", () => {
+      if (enEcoute) {
+        veutContinuer = false;
+        reco.stop();
+        return;
+      }
+      veutContinuer = true;
+      erreur = "";
+      try {
+        reco.start();
+        afficherEtat(true);
+        statut.textContent = "Je t'écoute…";
+        zone.focus();
+      } catch { /* un démarrage est déjà en cours */ }
+    });
+
+    // On coupe le micro quand on enregistre le formulaire
+    zone.form?.addEventListener("submit", () => {
+      veutContinuer = false;
+      reco.stop();
+    });
+  });
+})();

@@ -950,3 +950,29 @@
     font-weight: 700;
   }
 }
+/* ==========================================================================
+   Ajouts étape 6c : dictée vocale
+   ========================================================================== */
+@layer components {
+  .dictation[hidden] { display: none; }
+
+  .dictation-btn.is-listening {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+    color: var(--danger);
+    animation: mic-pulse 1.6s ease-out infinite;
+  }
+  .dictation-btn.is-listening:hover svg { transform: none; }
+
+  .dictation-status {
+    font-size: .85rem;
+    font-style: italic;
+    color: var(--muted);
+  }
+}
+
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--danger) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
