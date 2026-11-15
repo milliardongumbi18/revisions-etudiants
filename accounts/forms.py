@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 
 from core.forms import StyledFormMixin
 
@@ -46,6 +46,10 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
         # qui est faux (sinon on aide un attaquant à deviner les comptes existants).
         "invalid_login": "Nom d'utilisateur ou mot de passe incorrect. Attention aux majuscules.",
     }
+
+
+class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
+    """Changement de mot de passe : logique de Django (vérifie l'ancien, valide le nouveau)."""
 
 
 class ProfileForm(StyledFormMixin, forms.ModelForm):

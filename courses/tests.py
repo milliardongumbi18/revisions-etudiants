@@ -1,10 +1,19 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
+
+from services.tests import make_pdf
 
 from .models import Chapter, Course
 
 User = get_user_model()
+
+# Pendant les tests, les fichiers sont gardés en mémoire (rien sur le disque, rien sur Supabase)
+STOCKAGE_MEMOIRE = {
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 
 class CourseTestCase(TestCase):
@@ -83,3 +92,31 @@ class ChapterViewsTests(CourseTestCase):
         response = self.client.get(reverse("courses:chapter_detail", args=[chapter.pk]))
         self.assertContains(response, "&lt;script&gt;alert(1)&lt;/script&gt;")
         self.assertNotContains(response, "<script>alert(1)</script>")
+    
+
+@override_settings(STORAGES=STOCKAGE_MEMOIRE)
+class ChapterFileTests(CourseTestCase):
+    def test_import_pdf_cree_le_chapitre_avec_son_texte(self):
+        url = reverse("courses:chapter_create", args=[self.course_awa.pk])
+        pdf = SimpleUploadedFile("Chapitre 1.pdf", make_pdf("Les sources du droit"), content_type="application/pdf")
+        response = self.client.post(url, {"title": "Sources", "notes": "", "source_file": pdf})
+
+        self.assertRedirects(response, self.course_awa.get_absolute_url())
+        chapter = Chapter.objects.get(title="Sources")
+        self.assertIn("Les sources du droit", chapter.notes)
+        self.assertEqual(chapter.original_filename, "Chapitre 1.pdf")
+        # Nom stocké généré par nous : dossier de l'étudiant + identifiant aléatoire
+        self.assertTrue(chapter.source_file.name.startswith(f"chapitres/{self.awa.pk}/"))
+        self.assertTrue(chapter.source_file.name.endswith(".pdf"))
+
+    def test_ni_notes_ni_fichier_refuse(self):
+        url = reverse("courses:chapter_create", args=[self.course_awa.pk])
+        response = self.client.post(url, {"title": "Vide", "notes": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "notes", "Écris tes notes ou importe un fichier.")
+        self.assertFalse(Chapter.objects.filter(title="Vide").exists())
+
+    def test_fichier_d_un_autre_introuvable(self):
+        chapter = Chapter.objects.create(course=self.course_bob, title="Alcanes", notes="...", order=1)
+        response = self.client.get(reverse("courses:chapter_file", args=[chapter.pk]))
+        self.assertEqual(response.status_code, 404)

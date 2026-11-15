@@ -14,4 +14,5 @@ urlpatterns = [
     path("chapitres/<int:pk>/", views.ChapterDetailView.as_view(), name="chapter_detail"),
     path("chapitres/<int:pk>/modifier/", views.ChapterUpdateView.as_view(), name="chapter_update"),
     path("chapitres/<int:pk>/supprimer/", views.ChapterDeleteView.as_view(), name="chapter_delete"),
+    path("chapitres/<int:pk>/fichier/", views.ChapterFileView.as_view(), name="chapter_file"),
 ]

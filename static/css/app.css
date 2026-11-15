@@ -682,3 +682,245 @@
   .empty-state .icon-tile { width: 4rem; height: 4rem; margin-inline: auto; border-radius: 20px; }
   .empty-state .icon-tile svg { width: 2rem; height: 2rem; }
 }
+/* ==========================================================================
+   Ajouts étape 6a : zone de dépôt de fichier, séparateur, pastille de fichier
+   ========================================================================== */
+@layer components {
+  .dropzone {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: .6rem;
+    padding: 2rem 1.5rem;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background-color .2s, transform .25s var(--ease-out);
+  }
+  .dropzone > * { pointer-events: none; }   /* évite le clignotement pendant le glisser */
+  .dropzone:hover,
+  .dropzone.is-dragover {
+    border-color: var(--course, var(--brand));
+    background: color-mix(in srgb, var(--course, var(--brand)) 8%, var(--surface));
+  }
+  .dropzone.is-dragover { transform: scale(1.015); }
+  .dropzone.has-file { border-style: solid; border-color: var(--leaf); }
+  .dropzone:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .dropzone-file { font-weight: 600; color: var(--text); word-break: break-word; }
+
+  .divider-or {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: .85rem;
+    color: var(--muted);
+  }
+  .divider-or::before,
+  .divider-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    max-width: 100%;
+    padding: .5rem .9rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-2);
+    font-size: .85rem;
+    font-weight: 600;
+    transition: border-color .2s, transform .2s var(--ease-out);
+  }
+  .file-chip:hover { border-color: var(--course, var(--brand)); transform: translateY(-1px); }
+  .file-chip svg { width: 1rem; height: 1rem; flex-shrink: 0; color: var(--course, var(--brand)); }
+}
+/* ==========================================================================
+   Ajouts étape 5 bis : bascule connexion / inscription
+   ========================================================================== */
+@layer components {
+  .auth-switch {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: .9rem;
+    color: var(--muted);
+  }
+  /* Lien dans la couleur principale, souligné, bien identifiable */
+  .auth-switch a {
+    color: var(--brand);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, var(--brand) 40%, transparent);
+    transition: text-decoration-color .2s, color .2s;
+  }
+  .auth-switch a:hover { color: var(--brand-hover); text-decoration-color: currentColor; }
+}
+/* ==========================================================================
+   Ajout : fenêtre de confirmation (modale)
+   ========================================================================== */
+@layer components {
+  .modal {
+    margin: auto;   /* recentre la fenêtre (la remise à zéro de Tailwind met margin: 0) */
+    width: min(26rem, calc(100vw - 2rem));
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+  }
+  .modal .icon-tile { margin-inline: auto; }
+  .modal::backdrop {
+    background: rgba(10, 20, 36, .45);
+    -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+  }
+  .modal[open] { animation: modal-in .35s var(--ease-spring); }
+  .modal[open]::backdrop { animation: backdrop-in .25s ease-out; }
+}
+
+@keyframes modal-in { from { opacity: 0; transform: translateY(14px) scale(.95); } }
+@keyframes backdrop-in { from { opacity: 0; } }
+/* ==========================================================================
+   Ajouts étape 4 : navigation, liens, alertes, mots de passe, profil
+   ========================================================================== */
+@layer components {
+  .btn-sm { padding: .6rem 1rem; font-size: .875rem; }
+  .btn-light { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .btn-light:hover { box-shadow: var(--shadow-lg); }
+
+  /* Lien de navigation : soulignement dégradé qui se dessine au survol */
+  .nav-link {
+    position: relative;
+    padding: .4rem .2rem;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--muted);
+    transition: color .2s;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .3s var(--ease-out);
+  }
+  .nav-link:hover,
+  .nav-link[aria-current="page"] { color: var(--text); }
+  .nav-link:hover::after,
+  .nav-link[aria-current="page"]::after { transform: scaleX(1); }
+
+  .link {
+    color: var(--brand);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: color-mix(in srgb, var(--brand) 35%, transparent);
+    transition: text-decoration-color .2s;
+  }
+  .link:hover { text-decoration-color: var(--brand); }
+
+  .auth-card { padding: 2.25rem; }
+
+  /* Liste des règles de mot de passe fournie par Django */
+  .help ul { display: grid; gap: .15rem; margin-top: .25rem; padding-left: 1.1rem; list-style: disc; }
+
+  /* Bouton Afficher / Masquer dans les champs mot de passe */
+  .password-wrap { position: relative; }
+  .password-wrap .input { padding-right: 5.5rem; }
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: .5rem;
+    transform: translateY(-50%);
+    padding: .35rem .7rem;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .password-toggle:hover { background: var(--surface-2); color: var(--text); }
+
+  /* Avatar à initiales */
+  .avatar {
+    width: 5rem;
+    height: 5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+    color: var(--on-grad);
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    box-shadow: 0 10px 30px var(--glow);
+  }
+
+  /* Bouton en cours d'envoi : petite roue qui tourne */
+  .btn.is-loading { pointer-events: none; opacity: .85; }
+  .btn.is-loading::before {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    animation: spin .7s linear infinite;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* ==========================================================================
+   Ajout : alerte d'erreur plus visible
+   ========================================================================== */
+@layer components {
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+    padding: .9rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: .9rem;
+    font-weight: 600;
+  }
+  .alert-error {
+    border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+    background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+    color: var(--danger);
+    animation: shake .45s var(--ease-out);
+  }
+  .alert-error::before {
+    content: "!";
+    flex-shrink: 0;
+    width: 1.35rem;
+    height: 1.35rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--danger);
+    color: var(--on-danger, #fff);
+    font-size: .8rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+}

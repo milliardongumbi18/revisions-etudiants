@@ -102,3 +102,75 @@
     }, 6000);
   });
 })();
+
+/* ---------- 5. Zone de dépôt de fichier (ajout étape 6a) ---------- */
+(() => {
+  "use strict";
+
+  document.querySelectorAll("[data-dropzone]").forEach((zone) => {
+    const input = zone.querySelector('input[type="file"]');
+    const label = zone.querySelector("[data-dropzone-label]");
+    if (!input || !label) return;
+    const texteInitial = label.textContent;
+
+    // Affiche le nom et la taille du fichier choisi
+    const afficher = () => {
+      const fichier = input.files[0];
+      label.textContent = fichier
+        ? `${fichier.name} · ${(fichier.size / 1024 / 1024).toFixed(1)} Mo`
+        : texteInitial;
+      zone.classList.toggle("has-file", Boolean(fichier));
+    };
+    input.addEventListener("change", afficher);
+
+    ["dragenter", "dragover"].forEach((type) =>
+      zone.addEventListener(type, (event) => {
+        event.preventDefault();   // sinon le navigateur ouvre le fichier au lieu de le déposer
+        zone.classList.add("is-dragover");
+      })
+    );
+    ["dragleave", "drop"].forEach((type) =>
+      zone.addEventListener(type, (event) => {
+        event.preventDefault();
+        zone.classList.remove("is-dragover");
+      })
+    );
+    zone.addEventListener("drop", (event) => {
+      if (event.dataTransfer.files.length) {
+        input.files = event.dataTransfer.files;   // le fichier déposé devient celui du formulaire
+        afficher();
+      }
+    });
+  });
+})();
+
+/* ---------- 6. Confirmation de déconnexion ---------- */
+(() => {
+  "use strict";
+
+  const form = document.querySelector("form[data-confirm-logout]");
+  const dialog = document.getElementById("logout-dialog");
+  // Navigateur trop ancien pour <dialog> : on garde la déconnexion directe
+  if (!form || !dialog || typeof dialog.showModal !== "function") return;
+
+  let confirme = false;
+
+  form.addEventListener("submit", (event) => {
+    if (confirme) return;            // 2e passage : on laisse partir le formulaire
+    event.preventDefault();
+    dialog.showModal();
+  });
+
+  dialog.querySelector("[data-modal-close]").addEventListener("click", () => dialog.close());
+
+  dialog.querySelector("[data-modal-confirm]").addEventListener("click", () => {
+    confirme = true;
+    dialog.close();
+    form.requestSubmit();            // envoie le formulaire (avec son jeton CSRF)
+  });
+
+  // Clic sur le fond flouté = annuler (Échap ferme déjà la fenêtre nativement)
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+})();

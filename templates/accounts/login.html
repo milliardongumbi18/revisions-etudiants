@@ -16,10 +16,8 @@
     <input type="hidden" name="next" value="{{ next }}">
     <button type="submit" class="btn btn-primary mt-2 w-full">Se connecter</button>
   </form>
-{% endblock %}
 
-{% block auth_footer %}
-  <p class="text-muted mt-6 text-center text-sm">
-    Pas encore de compte ? <a href="{% url 'accounts:signup' %}" class="link">Crée-le en une minute</a>
+    <p class="auth-switch">
+    Pas encore de compte ? <a href="{% url 'accounts:signup' %}">Crée-le en une minute</a>
   </p>
 {% endblock %}

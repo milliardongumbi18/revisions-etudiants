@@ -1,6 +1,20 @@
+from pathlib import Path
+from uuid import uuid4
+
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.urls import reverse
+
+
+def chapter_upload_path(instance, filename):
+    """
+    Le nom du fichier stocké est généré par NOUS : on ne garde que l'extension.
+    → pas de caractères dangereux, pas de collision, impossible à deviner.
+    """
+    extension = Path(filename).suffix.lower()
+    return f"chapitres/{instance.course.owner_id}/{uuid4().hex}{extension}"
 
 
 class Course(models.Model):
@@ -16,8 +30,8 @@ class Course(models.Model):
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,        # compte supprimé → ses cours aussi
-        related_name="courses",          # user.courses.all()
+        on_delete=models.CASCADE,
+        related_name="courses",
         verbose_name="propriétaire",
     )
     title = models.CharField("titre", max_length=150)
@@ -30,7 +44,7 @@ class Course(models.Model):
     updated_at = models.DateTimeField("modifié le", auto_now=True)
 
     class Meta:
-        ordering = ["-updated_at"]       # le plus récemment travaillé en premier
+        ordering = ["-updated_at"]
         verbose_name = "cours"
         verbose_name_plural = "cours"
 
@@ -42,7 +56,7 @@ class Course(models.Model):
 
 
 class Chapter(models.Model):
-    """Un chapitre d'un cours. Pour l'instant : des notes texte (PDF à l'étape suivante)."""
+    """Un chapitre : du texte écrit à la main OU extrait d'un fichier (PDF / .txt)."""
 
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="chapters", verbose_name="cours"
@@ -50,6 +64,8 @@ class Chapter(models.Model):
     title = models.CharField("titre", max_length=200)
     order = models.PositiveIntegerField("position", default=0)
     notes = models.TextField("notes de cours", blank=True)
+    source_file = models.FileField("fichier source", upload_to=chapter_upload_path, blank=True)
+    original_filename = models.CharField("nom du fichier d'origine", max_length=255, blank=True)
     created_at = models.DateTimeField("créé le", auto_now_add=True)
     updated_at = models.DateTimeField("modifié le", auto_now=True)
 
@@ -63,3 +79,10 @@ class Chapter(models.Model):
 
     def get_absolute_url(self):
         return reverse("courses:chapter_detail", args=[self.pk])
+
+
+@receiver(post_delete, sender=Chapter)
+def supprimer_le_fichier_du_chapitre(sender, instance, **kwargs):
+    """Chapitre supprimé (seul OU avec son cours) → son fichier est retiré du stockage."""
+    if instance.source_file:
+        instance.source_file.delete(save=False)

@@ -15,10 +15,8 @@
     {% endfor %}
     <button type="submit" class="btn btn-primary mt-2 w-full">Créer mon compte</button>
   </form>
-{% endblock %}
 
-{% block auth_footer %}
-  <p class="text-muted mt-6 text-center text-sm">
-    Déjà inscrit ? <a href="{% url 'accounts:login' %}" class="link">Connecte-toi</a>
+    <p class="auth-switch">
+    Déjà inscrit ? <a href="{% url 'accounts:login' %}">Connecte-toi</a>
   </p>
 {% endblock %}

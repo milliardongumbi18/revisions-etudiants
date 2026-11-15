@@ -102,7 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Où aller selon la situation (noms d'URL, pas de chemins en dur)
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "accounts:profile"   # deviendra le tableau de bord plus tard
+LOGIN_REDIRECT_URL = "courses:list"       # deviendra le tableau de bord plus tard   # deviendra le tableau de bord plus tard
 LOGOUT_REDIRECT_URL = "core:home"
 
 
@@ -132,6 +132,37 @@ STORAGES = {
         ),
     },
 }
+
+# --- Fichiers envoyés par les étudiants (PDF, .txt) -------------------------------
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"   # en local uniquement (le disque de Render est effacé à chaque déploiement)
+
+# En production : stockage objet Supabase (protocole S3). Sans STORAGE_BUCKET → disque local.
+STORAGE_BUCKET = env("STORAGE_BUCKET", default="")
+if STORAGE_BUCKET:
+    from botocore.config import Config
+
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": STORAGE_BUCKET,
+            "endpoint_url": env("STORAGE_ENDPOINT"),
+            "region_name": env("STORAGE_REGION"),
+            "access_key": env("STORAGE_ACCESS_KEY"),
+            "secret_key": env("STORAGE_SECRET_KEY"),
+            "default_acl": None,          # bucket privé : aucune permission publique
+            "querystring_auth": True,     # liens de téléchargement signés...
+            "querystring_expire": 600,    # ...valables 10 minutes
+            "file_overwrite": False,
+            "client_config": Config(
+                s3={"addressing_style": "path"},             # format d'adresse exigé par Supabase
+                signature_version="s3v4",
+                request_checksum_calculation="when_required",  # compatibilité avec Supabase
+                response_checksum_validation="when_required",
+            ),
+        },
+    }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

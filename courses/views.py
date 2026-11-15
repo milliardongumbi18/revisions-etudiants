@@ -3,7 +3,8 @@ from functools import cached_property
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count, Max
-from django.shortcuts import get_object_or_404
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
@@ -36,7 +37,6 @@ class CourseListView(OwnedCourseMixin, ListView):
     context_object_name = "courses"
 
     def get_queryset(self):
-        # Le nombre de chapitres est calculé en UNE requête (pas une par cours)
         return super().get_queryset().annotate(chapter_count=Count("chapters"))
 
 
@@ -46,7 +46,7 @@ class CourseCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
     success_message = "Cours « %(title)s » créé."
 
     def form_valid(self, form):
-        form.instance.owner = self.request.user   # le propriétaire vient de la session, jamais du formulaire
+        form.instance.owner = self.request.user
         return super().form_valid(form)
 
 
@@ -71,7 +71,7 @@ class CourseDeleteView(OwnedCourseMixin, SuccessMessageMixin, DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["warning"] = "Tous ses chapitres seront supprimés avec lui. Cette action est irréversible."
+        context["warning"] = "Tous ses chapitres (et leurs fichiers) seront supprimés avec lui. Cette action est irréversible."
         context["cancel_url"] = self.object.get_absolute_url()
         return context
 
@@ -85,8 +85,6 @@ class ChapterCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
 
     @cached_property
     def course(self):
-        # Lu APRÈS la vérification de connexion (pas dans dispatch).
-        # 404 si le cours n'existe pas OU appartient à quelqu'un d'autre.
         return get_object_or_404(Course, pk=self.kwargs["course_pk"], owner=self.request.user)
 
     def get_context_data(self, **kwargs):
@@ -95,11 +93,11 @@ class ChapterCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        form.instance.course = self.course
+        form.instance.course = self.course   # AVANT l'enregistrement : utilisé pour le chemin du fichier
         dernier = self.course.chapters.aggregate(dernier=Max("order"))["dernier"] or 0
         form.instance.order = dernier + 1
         response = super().form_valid(form)
-        self.course.save(update_fields=["updated_at"])   # le cours remonte en tête de liste
+        self.course.save(update_fields=["updated_at"])
         return response
 
     def get_success_url(self):
@@ -128,7 +126,11 @@ class ChapterUpdateView(OwnedChapterMixin, SuccessMessageMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        # Nom de l'ancien fichier, lu en base AVANT l'enregistrement
+        ancien = Chapter.objects.filter(pk=self.object.pk).values_list("source_file", flat=True).first()
         response = super().form_valid(form)
+        if ancien and ancien != self.object.source_file.name:
+            self.object.source_file.storage.delete(ancien)   # remplacé : on ne garde pas l'ancien
         self.object.course.save(update_fields=["updated_at"])
         return response
 
@@ -147,3 +149,16 @@ class ChapterDeleteView(OwnedChapterMixin, SuccessMessageMixin, DeleteView):
         context["warning"] = "Cette action est irréversible."
         context["cancel_url"] = self.object.get_absolute_url()
         return context
+
+
+class ChapterFileView(OwnedChapterMixin, DetailView):
+    """
+    Ouverture du fichier source : propriétaire uniquement (OwnedChapterMixin),
+    puis redirection vers un lien SIGNÉ qui expire après 10 minutes.
+    """
+
+    def get(self, request, *args, **kwargs):
+        chapter = self.get_object()
+        if not chapter.source_file:
+            raise Http404("Ce chapitre n'a pas de fichier.")
+        return redirect(chapter.source_file.url)

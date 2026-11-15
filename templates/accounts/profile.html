@@ -15,6 +15,9 @@
           <p class="mt-4"><span class="badge">{{ user.university }}</span></p>
         {% endif %}
         <p class="text-muted mt-4 text-sm">Membre depuis {{ user.date_joined|date:"F Y" }}</p>
+        <a href="{% url 'accounts:password_change' %}" class="btn btn-ghost btn-sm mt-6 w-full">
+          Changer mon mot de passe
+        </a>
       </div>
     </aside>
 

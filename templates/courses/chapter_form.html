@@ -12,11 +12,34 @@
       <p class="eyebrow">{{ course.title }}</p>
       <h1 class="mt-2 text-3xl font-extrabold">{% if object %}Modifier le chapitre{% else %}Nouveau chapitre{% endif %}</h1>
 
-      <form method="post" class="mt-8 grid gap-5" data-auth-form novalidate>
+      {# enctype obligatoire : sans lui, le navigateur n'envoie PAS le fichier #}
+      <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-5" data-auth-form novalidate>
         {% csrf_token %}
         {% include "partials/_form_errors.html" %}
         {% include "partials/_field.html" with field=form.title %}
+
+        <div class="field">
+          <span class="label">Importer un fichier <span class="text-muted font-normal">(facultatif)</span></span>
+          <label class="dropzone" data-dropzone>
+            {{ form.source_file }}
+            <span class="icon-tile" style="--tile: var(--course)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+            </span>
+            <span class="dropzone-file" data-dropzone-label>Glisse ton PDF ou ton .txt ici, ou clique pour le choisir</span>
+            <span class="help">PDF ou .txt · 10 Mo maximum · le texte sera extrait automatiquement</span>
+          </label>
+          {% if object.source_file %}
+            <p class="help">Fichier actuel : <strong>{{ object.original_filename|default:"fichier source" }}</strong>. En envoyer un nouveau remplacera le texte.</p>
+          {% endif %}
+          {% for error in form.source_file.errors %}
+            <p class="field-error">{{ error }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="divider-or">ou écris tes notes</div>
+
         {% include "partials/_field.html" with field=form.notes %}
+
         <div class="mt-2 flex justify-end gap-3">
           <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{{ course.get_absolute_url }}{% endif %}" class="btn btn-ghost">Annuler</a>
           <button type="submit" class="btn btn-primary">{% if object %}Enregistrer{% else %}Ajouter le chapitre{% endif %}</button>

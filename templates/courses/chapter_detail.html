@@ -12,6 +12,16 @@
       <p class="eyebrow">Chapitre {{ position }} sur {{ total }}</p>
       <h1 class="mt-2 break-words text-3xl font-extrabold md:text-4xl">{{ chapter.title }}</h1>
 
+      {% if chapter.source_file %}
+        <p class="mt-4">
+          <a href="{% url 'courses:chapter_file' chapter.pk %}" class="file-chip" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span class="truncate">{{ chapter.original_filename|default:"Fichier source" }}</span>
+            <span class="text-muted">· Ouvrir</span>
+          </a>
+        </p>
+      {% endif %}
+
       <div class="mt-5 flex flex-wrap gap-2">
         <a href="{% url 'courses:chapter_update' chapter.pk %}" class="btn btn-ghost btn-sm">Modifier</a>
         <a href="{% url 'courses:chapter_delete' chapter.pk %}" class="btn btn-ghost btn-sm">Supprimer</a>
