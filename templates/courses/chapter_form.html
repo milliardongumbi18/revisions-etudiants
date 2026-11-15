@@ -36,7 +36,22 @@
           {% endfor %}
         </div>
 
-        <div class="divider-or">ou écris tes notes</div>
+        <div class="divider-or">ou écris (ou dicte) tes notes</div>
+
+        {# Barre de dictée : cachée par défaut, affichée par app.js si le navigateur sait faire #}
+        <div class="dictation" data-dictation="{{ form.notes.id_for_label }}" hidden>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" class="btn btn-ghost btn-sm dictation-btn" data-dictation-toggle aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v5"/></svg>
+              <span data-dictation-label>Dicter</span>
+            </button>
+            <span class="dictation-status" data-dictation-status aria-live="polite"></span>
+          </div>
+          <p class="help mt-2">
+            Commandes : « virgule », « à la ligne », « nouveau paragraphe », « point à la ligne ».
+            La voix est transcrite par le service de reconnaissance de ton navigateur (connexion internet requise).
+          </p>
+        </div>
 
         {% include "partials/_field.html" with field=form.notes %}
 

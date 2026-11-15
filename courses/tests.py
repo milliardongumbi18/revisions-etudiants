@@ -137,3 +137,9 @@ class CourseImportTests(CourseTestCase):
         response = self.client.post(url, {"fichier": SimpleUploadedFile("cours.pdf", make_pdf("Intrus"))})
         self.assertEqual(response.status_code, 404)
         self.assertFalse(self.course_bob.chapters.exists())
+    
+
+class DictationTests(CourseTestCase):
+    def test_formulaire_chapitre_propose_la_dictee_sur_les_notes(self):
+        response = self.client.get(reverse("courses:chapter_create", args=[self.course_awa.pk]))
+        self.assertContains(response, 'data-dictation="id_notes"')
