@@ -1,11 +1,16 @@
+import hashlib
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.core.cache import cache
 
 from core.forms import StyledFormMixin
 
 from .models import User
 
 EMAIL_DEJA_UTILISE = "Un compte utilise déjà cette adresse e-mail."
+MAX_ECHECS_CONNEXION = 5
+DUREE_BLOCAGE = 15 * 60   # secondes
 
 
 def email_normalise_et_libre(email, exclude_pk=None):
@@ -38,14 +43,39 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
 
 
 class LoginForm(StyledFormMixin, AuthenticationForm):
-    """Connexion : logique de Django, message d'erreur plus clair."""
+    """
+    Connexion avec protection contre la force brute :
+    après 5 échecs sur un même nom d'utilisateur, blocage de 15 minutes.
+    """
 
     error_messages = {
         **AuthenticationForm.error_messages,
-        # Volontairement vague : on ne dit pas si c'est le nom OU le mot de passe
-        # qui est faux (sinon on aide un attaquant à deviner les comptes existants).
+        # Volontairement vague : on ne dit pas si c'est le nom OU le mot de passe qui est faux
         "invalid_login": "Nom d'utilisateur ou mot de passe incorrect. Attention aux majuscules.",
+        "trop_de_tentatives": "Trop de tentatives de connexion. Réessaie dans 15 minutes.",
     }
+
+    def clean(self):
+        nom = (self.cleaned_data.get("username") or "").strip().lower()
+        # Clé de cache hachée : jamais le nom en clair, et aucun caractère problématique
+        cle = "echecs-connexion:" + hashlib.sha256(nom.encode("utf-8")).hexdigest()
+
+        if nom and cache.get(cle, 0) >= MAX_ECHECS_CONNEXION:
+            raise forms.ValidationError(self.error_messages["trop_de_tentatives"], code="trop_de_tentatives")
+
+        try:
+            cleaned = super().clean()
+        except forms.ValidationError:
+            if nom:
+                cache.add(cle, 0, DUREE_BLOCAGE)   # crée le compteur (expire après 15 min) s'il n'existe pas
+                try:
+                    cache.incr(cle)
+                except ValueError:                 # expiré entre-temps : on repart à 1
+                    cache.set(cle, 1, DUREE_BLOCAGE)
+            raise
+
+        cache.delete(cle)   # connexion réussie : compteur remis à zéro
+        return cleaned
 
 
 class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):

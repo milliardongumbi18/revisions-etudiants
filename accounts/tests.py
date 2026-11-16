@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
+from django.core.cache import cache
 
 User = get_user_model()
 PASSWORD = "Kinshasa-Revise-2026!"
@@ -158,3 +159,29 @@ class PasswordChangeTests(TestCase):
         self.assertIn("old_password", response.context["form"].errors)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(PASSWORD))   # inchangé
+        
+
+class LoginThrottleTests(TestCase):
+    def setUp(self):
+        cache.clear()   # compteurs d'échecs remis à zéro entre les tests
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        self.url = reverse("accounts:login")
+
+    def echouer(self, fois):
+        for _ in range(fois):
+            self.client.post(self.url, {"username": "awa", "password": "faux"})
+
+    def test_blocage_apres_5_echecs_meme_avec_le_bon_mot_de_passe(self):
+        self.echouer(5)
+        response = self.client.post(self.url, {"username": "awa", "password": PASSWORD})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Trop de tentatives")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_connexion_reussie_remet_le_compteur_a_zero(self):
+        self.echouer(4)
+        self.client.post(self.url, {"username": "awa", "password": PASSWORD})   # réussite
+        self.client.logout()
+        self.echouer(4)
+        response = self.client.post(self.url, {"username": "awa", "password": PASSWORD})
+        self.assertEqual(response.status_code, 302)   # toujours autorisé

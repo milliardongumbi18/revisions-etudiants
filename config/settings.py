@@ -181,7 +181,8 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True          # redirige tout le HTTP vers HTTPS
     SESSION_COOKIE_SECURE = True        # cookie de session envoyé uniquement en HTTPS
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 3600          # 1 h pour commencer ; on augmentera plus tard
+    SECURE_HSTS_SECONDS = 31_536_000    # 1 an : le navigateur refusera toute connexion non chiffrée
+    CSRF_COOKIE_HTTPONLY = True         # le JavaScript n'a pas besoin de lire le cookie CSRF          # 1 h pour commencer ; on augmentera plus tard
     SECURE_REFERRER_POLICY = "same-origin"
     
 
@@ -196,3 +197,18 @@ import sys
 
 if "test" in sys.argv:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]         # secondes (gunicorn est réglé à 120)
+
+
+# --- Journaux : erreurs visibles dans la console (et donc dans Render → Logs) ----------
+# Par défaut, avec DEBUG=False, Django n'écrit PAS les erreurs 500 dans la console.
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},   # nos services (IA…) : avertissements et plus
+    "loggers": {
+        # Django : seulement les vraies erreurs (500), pas chaque page 404
+        "django": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}
