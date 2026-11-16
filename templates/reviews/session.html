@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Révision · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-10 md:py-14" data-color="{{ chapter.course.color }}">
+  <div class="mx-auto max-w-2xl">
+
+    <div class="flex items-center justify-between gap-4 text-sm">
+      <span class="text-muted font-semibold">Question {{ position }} sur {{ total }}</span>
+      <a href="{% url 'reviews:home' %}" class="back-link">Quitter</a>
+    </div>
+    <div class="progress mt-3" style="--value: {{ percent }}%"><span></span></div>
+
+    <article class="animate-in card review-card mt-6">
+      <p class="eyebrow">{{ chapter.course.title }} · {{ chapter.title }}</p>
+      <h1 class="mt-3 text-2xl font-bold leading-snug">{{ question.text }}</h1>
+
+      {% if not pending %}
+        {# ===== 1. La question ===== #}
+        {% if question.kind == "qcm" %}
+          <form method="post" action="{% url 'reviews:answer' %}" class="mt-6">
+            {% csrf_token %}
+            <fieldset class="choices">
+              <legend class="sr-only">Choisis une réponse</legend>
+              {% for choix in question.choices %}
+                <label class="option option-choice">
+                  <input type="radio" name="choice" value="{{ forloop.counter0 }}" class="sr-only" required>
+                  <span>{{ choix }}</span>
+                </label>
+              {% endfor %}
+            </fieldset>
+            <button type="submit" class="btn btn-primary mt-6 w-full">Valider</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'reviews:answer' %}" class="mt-6 grid gap-3">
+            {% csrf_token %}
+            <label class="label" for="reponse">Ta réponse</label>
+            <textarea id="reponse" name="answer" rows="3" class="input" maxlength="1000"
+                      placeholder="Écris ta réponse… (ou réponds dans ta tête, puis affiche la correction)"></textarea>
+            <button type="submit" class="btn btn-primary w-full">Voir la correction</button>
+          </form>
+        {% endif %}
+
+      {% else %}
+        {# ===== 2. La correction ===== #}
+        {% if question.kind == "qcm" %}
+          <div class="feedback {% if pending.correct %}is-ok{% else %}is-ko{% endif %} mt-5" role="status">
+            {% if pending.correct %}✓ Bonne réponse !{% else %}✗ Pas tout à fait…{% endif %}
+          </div>
+          <ol class="choices mt-4">
+            {% for choix in question.choices %}
+              <li class="option{% if forloop.counter0 == question.correct_index %} is-correct{% elif forloop.counter0 == pending.choice %} is-wrong{% endif %}">{{ choix }}</li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <div class="answer-compare mt-5">
+            <div>
+              <p class="label">Ta réponse</p>
+              <p class="mt-1">{{ pending.answer|default:"(pas de réponse écrite)"|linebreaksbr }}</p>
+            </div>
+            <div class="answer-body">
+              <p class="label">Réponse attendue</p>
+              <p class="mt-1">{{ question.expected_answer }}</p>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if question.explanation %}
+          <p class="text-muted mt-4">{{ question.explanation }}</p>
+        {% endif %}
+
+        {# ===== 3. La note (SM-2) ===== #}
+        <form method="post" action="{% url 'reviews:grade' %}" class="mt-6">
+          {% csrf_token %}
+          {% if question.kind == "qcm" and not pending.correct %}
+            <button type="submit" name="grade" value="1" class="btn btn-primary w-full">
+              Continuer · cette question reviendra demain
+            </button>
+          {% else %}
+            <p class="label">{% if question.kind == "qcm" %}C'était comment ?{% else %}Compare, puis sois honnête :{% endif %}</p>
+            <div class="grade-grid mt-3">
+              {% if question.kind == "courte" %}
+                <button type="submit" name="grade" value="1" class="grade-btn" data-grade="1">Raté<small>demain</small></button>
+              {% endif %}
+              {% for note, libelle, delai in boutons %}
+                <button type="submit" name="grade" value="{{ note }}" class="grade-btn" data-grade="{{ note }}">{{ libelle }}<small>{{ delai }}</small></button>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </form>
+      {% endif %}
+    </article>
+
+  </div>
+</section>
+{% endblock %}

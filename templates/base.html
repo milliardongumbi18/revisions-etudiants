@@ -48,6 +48,8 @@
         {% if user.is_authenticated %}
           <a href="{% url 'courses:list' %}" class="nav-link"
              {% if request.resolver_match.app_name == 'courses' %}aria-current="page"{% endif %}>Mes cours</a>
+                       <a href="{% url 'reviews:home' %}" class="nav-link"
+             {% if request.resolver_match.app_name == 'reviews' %}aria-current="page"{% endif %}>Réviser</a>
           <a href="{% url 'accounts:profile' %}" class="nav-link"
              {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}>Profil</a>
           {# data-confirm-logout : app.js affiche une confirmation avant d'envoyer #}

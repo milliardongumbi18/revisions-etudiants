@@ -1037,3 +1037,109 @@
     animation: fade-up .35s var(--ease-out);
   }
 }
+/* ==========================================================================
+   Ajouts étape 8 : séance de révision, notes SM-2, bilan
+   ========================================================================== */
+@layer components {
+  /* Choix cliquables (boutons radio cachés) */
+  .option-choice {
+    cursor: pointer;
+    transition: border-color .2s, background-color .2s, transform .15s var(--ease-out);
+  }
+  .option-choice:hover { border-color: color-mix(in srgb, var(--course, var(--brand)) 50%, var(--border)); }
+  .option-choice:has(input:checked) {
+    border-color: var(--course, var(--brand));
+    background: color-mix(in srgb, var(--course, var(--brand)) 12%, var(--surface));
+  }
+  .option-choice:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .option-choice:active { transform: scale(.99); }
+  .option.is-wrong {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  }
+
+  /* Bandeau « Bonne réponse / Pas tout à fait » */
+  .feedback {
+    padding: .8rem 1rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    animation: pop-in .4s var(--ease-spring);
+  }
+  .feedback.is-ok { background: color-mix(in srgb, var(--leaf) 14%, var(--surface)); color: var(--leaf); }
+  .feedback.is-ko {
+    background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+    color: var(--danger);
+    animation: pop-in .4s var(--ease-spring), shake .45s var(--ease-out) .1s;
+  }
+
+  .answer-compare { display: grid; gap: .75rem; }
+  .answer-compare > div:first-child { padding: .9rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); }
+
+  /* Boutons de note SM-2 : une couleur par niveau */
+  .grade-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .6rem; }
+  .grade-btn {
+    --g: var(--brand);
+    display: grid;
+    gap: .15rem;
+    padding: .85rem .75rem;
+    border: 1.5px solid color-mix(in srgb, var(--g) 45%, var(--border));
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--g) 8%, var(--surface));
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .2s var(--ease-out), box-shadow .2s, background-color .2s;
+  }
+  .grade-btn small { font-size: .75rem; font-weight: 600; color: var(--muted); }
+  .grade-btn:hover {
+    transform: translateY(-2px);
+    background: color-mix(in srgb, var(--g) 16%, var(--surface));
+    box-shadow: 0 10px 24px -12px var(--g);
+  }
+  .grade-btn[data-grade="1"] { --g: var(--danger); }
+  .grade-btn[data-grade="3"] { --g: var(--accent); }
+  .grade-btn[data-grade="4"] { --g: var(--brand); }
+  .grade-btn[data-grade="5"] { --g: var(--leaf); }
+
+  /* Page « Révisions du jour » */
+  .due-count {
+    margin-top: .5rem;
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 10vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(120deg, var(--grad-a), var(--grad-b));
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+  }
+  .stat-tile { display: grid; gap: .25rem; padding: 1.25rem 1.5rem; }
+  .stat-value { font-family: var(--font-display); font-size: 2rem; font-weight: 800; }
+
+  /* Anneau de score animé (bilan) */
+  .score-ring {
+    width: 10rem;
+    height: 10rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: conic-gradient(var(--leaf) calc(var(--p) * 1%), var(--surface-2) 0);
+    animation: ring-fill 1.2s var(--ease-out) both;
+  }
+  .score-ring > span {
+    width: 7.6rem;
+    height: 7.6rem;
+    display: grid;
+    place-content: center;
+    gap: .1rem;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+  .score-ring strong { font-family: var(--font-display); font-size: 2rem; }
+  .score-ring small { font-size: .75rem; color: var(--muted); }
+}
+
+/* --p animable : l'anneau se remplit de 0 jusqu'au score */
+@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+@keyframes ring-fill { from { --p: 0; } }
+@keyframes pop-in { from { opacity: 0; transform: scale(.95); } }

@@ -18,9 +18,13 @@
         </span>
       </div>
       <p class="text-muted mt-4 text-sm">
-        Réfléchis à ta réponse, puis ouvre la correction. Le mode révision avec score et répétition espacée arrive bientôt.
+        Réfléchis à ta réponse, puis ouvre la correction. Pour t’entraîner avec un score, clique sur « Réviser ce quiz ».
       </p>
-      <div class="mt-5">
+            <div class="mt-5 flex flex-wrap items-center gap-2">
+        <form method="post" action="{% url 'reviews:start_quiz' quiz.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">▶ Réviser ce quiz</button>
+        </form>
         <a href="{% url 'quizzes:delete' quiz.pk %}" class="btn btn-ghost btn-sm">Supprimer ce quiz</a>
       </div>
     </div>
