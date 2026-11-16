@@ -7,6 +7,16 @@
   <meta name="color-scheme" content="light dark">
   <title>{% block title %}Révisions Étudiants{% endblock %}</title>
   <meta name="description" content="Quiz générés par IA à partir de tes cours, répétition espacée et planning de révisions adapté à ton emploi du temps.">
+    <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <meta name="theme-color" content="#3c3fb0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a1424" media="(prefers-color-scheme: dark)">
+  {# Aperçu quand on partage le lien (WhatsApp, Facebook, LinkedIn…) #}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Révisions Étudiants">
+  <meta property="og:title" content="Révisions Étudiants — révise mieux, pas plus longtemps">
+  <meta property="og:description" content="Quiz générés par IA à partir de tes cours, répétition espacée et planning de révisions adapté à ton emploi du temps.">
+  <meta property="og:locale" content="fr_FR">
+  <meta name="twitter:card" content="summary">
 
   {# Choix du thème AVANT l'affichage de la page : évite le « flash » clair → sombre #}
   <script>

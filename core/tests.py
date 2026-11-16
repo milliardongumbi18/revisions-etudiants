@@ -12,3 +12,13 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("core:home"))
         self.assertContains(response, 'id="theme-toggle"')
         self.assertContains(response, "css/app.css")
+    
+    def test_page_404_personnalisee(self):
+        response = self.client.get("/cette-page-n-existe-pas/")
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_favicon_redirige_vers_le_svg(self):
+        response = self.client.get("/favicon.ico")
+        self.assertEqual(response.status_code, 301)
+        self.assertTrue(response["Location"].endswith("favicon.svg"))

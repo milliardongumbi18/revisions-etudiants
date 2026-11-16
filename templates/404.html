@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Page introuvable · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container-app flex flex-col items-center py-20 text-center md:py-28">
+    <div class="animate-in"><p class="error-code">404</p></div>
+    <h1 class="animate-in mt-4 text-3xl font-extrabold md:text-4xl" style="--delay: 100ms">Cette page s'est perdue en route</h1>
+    <p class="animate-in text-muted mt-3 max-w-md" style="--delay: 180ms">
+      Elle a peut-être été supprimée, ou l'adresse contient une faute de frappe.
+    </p>
+    <div class="animate-in mt-8" style="--delay: 260ms">
+      <a href="{% if user.is_authenticated %}{% url 'dashboard:home' %}{% else %}{% url 'core:home' %}{% endif %}" class="btn btn-primary">
+        Retour à l'accueil
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -2,8 +2,9 @@ from django.urls import path
 
 from . import views
 
-app_name = "core"  # espace de noms : on écrit {% url 'core:home' %}
+app_name = "core"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("favicon.ico", views.favicon, name="favicon"),
 ]

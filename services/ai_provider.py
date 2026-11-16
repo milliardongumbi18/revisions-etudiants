@@ -8,12 +8,17 @@ la variable d'environnement AI_PROVIDER. Aucune vue à modifier.
 """
 import json
 import logging
+import time
 import urllib.error
 import urllib.request
 
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+TENTATIVES = 3                               # 1 essai + 2 nouvelles tentatives
+PAUSE_SECONDES = 2                           # 2 s, puis 4 s
+CODES_SURCHARGE = {500, 502, 503, 504}       # erreurs passagères côté fournisseur : on réessaie
 
 
 class AIError(Exception):
@@ -50,26 +55,10 @@ class GeminiProvider(AIProvider):
             "generationConfig": {
                 "responseMimeType": "application/json",   # réponse en JSON...
                 "responseSchema": schema,                 # ...qui respecte NOTRE structure
-                "temperature": 0.7,                        # un peu de variété d'un quiz à l'autre                        # peu de fantaisie : on veut du fiable
+                "temperature": 0.7,                        # un peu de variété d'un quiz à l'autre
             },
         }
-        request = urllib.request.Request(
-            self.URL.format(model=self.model),
-            data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
-            method="POST",
-        )
-
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")[:500]
-            logger.warning("Gemini HTTP %s : %s", exc.code, detail)   # la clé n'est jamais journalisée
-            raise AIError(self._message_http(exc.code)) from exc
-        except (urllib.error.URLError, TimeoutError) as exc:
-            logger.warning("Gemini injoignable : %s", exc)
-            raise AIError("Impossible de joindre le service d'IA (connexion coupée ou délai dépassé). Réessaie.") from exc
+        payload = self._appeler(body)
 
         try:
             parts = payload["candidates"][0]["content"]["parts"]
@@ -78,6 +67,30 @@ class GeminiProvider(AIProvider):
         except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
             logger.warning("Réponse Gemini inattendue : %s", str(payload)[:500])
             raise AIError("La réponse de l'IA était incomplète. Réessaie.") from exc
+
+    def _appeler(self, body):
+        """Envoie la requête ; réessaie automatiquement si Gemini est momentanément surchargé."""
+        request = urllib.request.Request(
+            self.URL.format(model=self.model),
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+            method="POST",
+        )
+        for tentative in range(1, TENTATIVES + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                detail = exc.read().decode("utf-8", "replace")[:300]
+                logger.warning("Gemini HTTP %s (tentative %s/%s) : %s", exc.code, tentative, TENTATIVES, detail)
+                if exc.code in CODES_SURCHARGE and tentative < TENTATIVES:
+                    time.sleep(PAUSE_SECONDES * tentative)
+                    continue
+                raise AIError(self._message_http(exc.code)) from exc
+            except (urllib.error.URLError, TimeoutError) as exc:
+                # Pas de nouvelle tentative sur un délai dépassé : on risquerait de bloquer la page trop longtemps
+                logger.warning("Gemini injoignable : %s", exc)
+                raise AIError("Impossible de joindre le service d'IA (connexion coupée ou délai dépassé). Réessaie.") from exc
 
     def _message_http(self, code):
         if code == 429:
@@ -88,6 +101,8 @@ class GeminiProvider(AIProvider):
             return f"Modèle « {self.model} » introuvable : vérifie GEMINI_MODEL."
         if code == 400:
             return "Demande refusée par l'IA : vérifie la clé API, ou le chapitre est peut-être trop long."
+        if code in CODES_SURCHARGE:
+            return "Le service d'IA est momentanément surchargé. Réessaie dans quelques instants."
         return "Le service d'IA est momentanément indisponible. Réessaie plus tard."
 
 
