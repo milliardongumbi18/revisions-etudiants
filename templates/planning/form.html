@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titre }} · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16">
+  <div class="animate-in mx-auto max-w-xl">
+
+    <a href="{% url 'planning:home' %}" class="back-link">← Mon planning</a>
+
+    <div class="card auth-card mt-4">
+      <p class="eyebrow">Planning</p>
+      <h1 class="mt-2 text-3xl font-extrabold">{{ titre }}</h1>
+
+      <form method="post" class="mt-8 grid gap-5" data-auth-form novalidate>
+        {% csrf_token %}
+        {% include "partials/_form_errors.html" %}
+        {% for field in form %}
+          {% include "partials/_field.html" %}
+        {% endfor %}
+
+        <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+          {% if delete_url %}
+            <a href="{{ delete_url }}" class="btn btn-ghost">Supprimer</a>
+          {% else %}
+            <span></span>
+          {% endif %}
+          <div class="flex gap-3">
+            <a href="{% url 'planning:home' %}" class="btn btn-ghost">Annuler</a>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

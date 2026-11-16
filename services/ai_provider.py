@@ -50,7 +50,7 @@ class GeminiProvider(AIProvider):
             "generationConfig": {
                 "responseMimeType": "application/json",   # réponse en JSON...
                 "responseSchema": schema,                 # ...qui respecte NOTRE structure
-                "temperature": 0.4,                        # peu de fantaisie : on veut du fiable
+                "temperature": 0.7,                        # un peu de variété d'un quiz à l'autre                        # peu de fantaisie : on veut du fiable
             },
         }
         request = urllib.request.Request(

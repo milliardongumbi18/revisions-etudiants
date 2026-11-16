@@ -51,7 +51,8 @@ class GenerateQuizView(LoginRequiredMixin, View):
             return redirect(chapter)
 
         try:
-            questions, fournisseur = generate_quiz(chapter.title, chapter.notes)
+            deja_posees = list(Question.objects.filter(quiz__chapter=chapter).values_list("text", flat=True)[:40])
+            questions, fournisseur = generate_quiz(chapter.title, chapter.notes, deja_posees=deja_posees)
         except AIError as error:
             messages.error(request, str(error))
             return redirect(chapter)

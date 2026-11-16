@@ -46,18 +46,15 @@
 
       <div class="flex items-center gap-3">
         {% if user.is_authenticated %}
-          <a href="{% url 'courses:list' %}" class="nav-link"
-             {% if request.resolver_match.app_name == 'courses' %}aria-current="page"{% endif %}>Mes cours</a>
-                       <a href="{% url 'reviews:home' %}" class="nav-link"
-             {% if request.resolver_match.app_name == 'reviews' %}aria-current="page"{% endif %}>Réviser</a>
-          <a href="{% url 'accounts:profile' %}" class="nav-link"
-             {% if request.resolver_match.url_name == 'profile' %}aria-current="page"{% endif %}>Profil</a>
+          <div class="hidden items-center gap-4 md:flex">
+            {% include "partials/_nav_links.html" %}
+          </div>
           {# data-confirm-logout : app.js affiche une confirmation avant d'envoyer #}
           <form method="post" action="{% url 'accounts:logout' %}" data-confirm-logout>
             {% csrf_token %}
             <button type="submit" class="btn btn-ghost btn-sm" aria-label="Déconnexion">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
-              <span class="hidden sm:inline">Déconnexion</span>
+              <span class="hidden lg:inline">Déconnexion</span>
             </button>
           </form>
         {% else %}
@@ -72,6 +69,15 @@
         </button>
       </div>
     </nav>
+
+    {% if user.is_authenticated %}
+      {# Mobile et tablette : les liens passent sur une seconde ligne #}
+      <nav class="sub-nav md:hidden" aria-label="Navigation principale (mobile)">
+        <div class="container-app flex items-center justify-between gap-2">
+          {% include "partials/_nav_links.html" %}
+        </div>
+      </nav>
+    {% endif %}
   </header>
 
   {% if messages %}
