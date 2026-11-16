@@ -976,3 +976,64 @@
   70%  { box-shadow: 0 0 0 12px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
+/* ==========================================================================
+   Ajouts étape 7 : affichage des quiz
+   ========================================================================== */
+@layer components {
+  .quiz-list { display: grid; gap: .6rem; }
+
+  .question-kind {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--course, var(--brand));
+  }
+
+  /* Choix de QCM numérotés A, B, C, D automatiquement (compteur CSS) */
+  .choices { display: grid; gap: .5rem; counter-reset: choix; }
+  .choices .option::before {
+    counter-increment: choix;
+    content: counter(choix, upper-alpha);
+    width: 1.7rem;
+    height: 1.7rem;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  /* Correction repliable */
+  .answer summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 600;
+    color: var(--course, var(--brand));
+    cursor: pointer;
+    list-style: none;
+  }
+  .answer summary::-webkit-details-marker { display: none; }
+  .answer summary::before {
+    content: "";
+    width: .5rem;
+    height: .5rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform .25s var(--ease-out);
+  }
+  .answer[open] summary::before { transform: rotate(45deg); }
+  .answer-body {
+    margin-top: .75rem;
+    padding: .9rem 1rem;
+    border-left: 4px solid var(--leaf);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--leaf) 10%, var(--surface));
+    animation: fade-up .35s var(--ease-out);
+  }
+}

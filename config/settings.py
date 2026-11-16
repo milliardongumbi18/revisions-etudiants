@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "core",
     "accounts",
     "courses",
+    "quizzes",
 ]
 
 MIDDLEWARE = [
@@ -177,3 +178,16 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 3600          # 1 h pour commencer ; on augmentera plus tard
     SECURE_REFERRER_POLICY = "same-origin"
+    
+
+# --- Intelligence artificielle (génération de quiz) -------------------------------
+
+AI_PROVIDER = env("AI_PROVIDER", default="gemini")       # "gemini" ou "fake" (démo, sans réseau)
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")      # jamais dans le code : .env / Render
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-latest")
+AI_TIMEOUT = env.int("AI_TIMEOUT", default=90)  
+# Tests uniquement : hachage rapide des mots de passe (jamais utilisé en production)
+import sys
+
+if "test" in sys.argv:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]         # secondes (gunicorn est réglé à 120)

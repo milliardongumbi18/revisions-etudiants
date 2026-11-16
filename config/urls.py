@@ -10,10 +10,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("compte/", include("accounts.urls")),
     path("cours/", include("courses.urls")),
+    path("quiz/", include("quizzes.urls")),
     path("", include("core.urls")),
 ]
 
 # En développement uniquement : Django sert les fichiers envoyés (dossier media/).
-# En production, ils sont sur Supabase et servis par liens signés.
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

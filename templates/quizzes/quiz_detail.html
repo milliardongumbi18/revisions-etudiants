@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz · {{ quiz.chapter.title }} · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16" data-color="{{ quiz.chapter.course.color }}">
+  <div class="mx-auto max-w-3xl">
+
+    <a href="{{ quiz.chapter.get_absolute_url }}" class="back-link animate-in">← {{ quiz.chapter.title }}</a>
+
+    <div class="animate-in course-hero mt-4" style="--delay: 80ms">
+      <p class="eyebrow">{{ quiz.chapter.course.title }}</p>
+      <h1 class="mt-2 break-words text-3xl font-extrabold md:text-4xl">Quiz · {{ quiz.chapter.title }}</h1>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <span class="badge">{{ questions|length }} questions</span>
+        <span class="text-muted text-sm">
+          Généré le {{ quiz.created_at|date:"j F Y à H:i" }}{% if quiz.generated_by %} · {{ quiz.generated_by }}{% endif %}
+        </span>
+      </div>
+      <p class="text-muted mt-4 text-sm">
+        Réfléchis à ta réponse, puis ouvre la correction. Le mode révision avec score et répétition espacée arrive bientôt.
+      </p>
+      <div class="mt-5">
+        <a href="{% url 'quizzes:delete' quiz.pk %}" class="btn btn-ghost btn-sm">Supprimer ce quiz</a>
+      </div>
+    </div>
+
+    <ol class="mt-8 grid gap-5">
+      {% for question in questions %}
+        <li data-reveal style="--delay: {% widthratio forloop.counter0 1 50 %}ms">
+          <article class="card question-card">
+            <div class="flex items-center justify-between gap-3">
+              <span class="chapter-num">{{ forloop.counter }}</span>
+              <span class="question-kind">{{ question.get_kind_display }}</span>
+            </div>
+
+            <h2 class="mt-4 text-lg font-bold leading-snug">{{ question.text }}</h2>
+
+            {% if question.kind == "qcm" %}
+              <ol class="choices mt-4">
+                {% for choix in question.choices %}
+                  <li class="option">{{ choix }}</li>
+                {% endfor %}
+              </ol>
+            {% endif %}
+
+            <details class="answer mt-4">
+              <summary>Voir la réponse</summary>
+              <div class="answer-body">
+                {% if question.kind == "qcm" %}
+                  <p><strong>Bonne réponse :</strong> {{ question.correct_choice }}</p>
+                {% else %}
+                  <p><strong>Réponse attendue :</strong> {{ question.expected_answer }}</p>
+                {% endif %}
+                {% if question.explanation %}
+                  <p class="text-muted mt-2">{{ question.explanation }}</p>
+                {% endif %}
+              </div>
+            </details>
+          </article>
+        </li>
+      {% endfor %}
+    </ol>
+
+  </div>
+</section>
+{% endblock %}

@@ -22,15 +22,41 @@
         </p>
       {% endif %}
 
-      <div class="mt-5 flex flex-wrap gap-2">
+      <div class="mt-5 flex flex-wrap items-center gap-2">
         <a href="{% url 'courses:chapter_update' chapter.pk %}" class="btn btn-ghost btn-sm">Modifier</a>
         <a href="{% url 'courses:chapter_delete' chapter.pk %}" class="btn btn-ghost btn-sm">Supprimer</a>
-        <button type="button" class="btn btn-primary btn-sm" disabled>Générer un quiz · bientôt</button>
+        <form method="post" action="{% url 'quizzes:generate' chapter.pk %}" data-auth-form>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary btn-sm">✨ Générer un quiz</button>
+        </form>
       </div>
+      <p class="help mt-2">La génération prend 10 à 40 secondes. Le texte du chapitre est envoyé au service d'IA (Gemini).</p>
 
       {# linebreaks : le texte est d'abord ÉCHAPPÉ, puis les retours à la ligne deviennent des paragraphes #}
       <div class="prose-notes mt-8">{{ chapter.notes|linebreaks }}</div>
     </article>
+
+    {% with quizzes=chapter.quizzes.all %}
+      {% if quizzes %}
+        <section class="mt-8">
+          <h2 class="text-xl font-bold">Quiz de ce chapitre</h2>
+          <ul class="quiz-list mt-4">
+            {% for quiz in quizzes %}
+              <li>
+                <a href="{{ quiz.get_absolute_url }}" class="chapter-item">
+                  <span class="chapter-num">✨</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold">Quiz du {{ quiz.created_at|date:"j F Y à H:i" }}</span>
+                    <span class="text-muted block text-sm">{{ quiz.questions.count }} questions</span>
+                  </span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+    {% endwith %}
 
     <nav class="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Navigation entre chapitres">
       {% if previous %}
