@@ -5,6 +5,7 @@ from django.urls import reverse
 from courses.models import Chapter, Course
 
 from .models import Quiz
+from reviews.models import ReviewCard
 
 User = get_user_model()
 NOTES = "Le droit civil régit les relations entre les personnes privées. " * 10   # > 200 caractères
@@ -61,3 +62,8 @@ class GenerateQuizTests(TestCase):
         response = self.client.post(self.url(self.chapter_awa), follow=True)
         self.assertContains(response, "clé API manquante")
         self.assertFalse(Quiz.objects.exists())
+
+
+    def test_generation_cree_les_cartes_de_revision(self):
+        self.client.post(self.url(self.chapter_awa))
+        self.assertEqual(ReviewCard.objects.filter(owner=self.awa).count(), 5)

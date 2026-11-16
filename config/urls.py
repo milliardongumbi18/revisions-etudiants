@@ -9,6 +9,7 @@ admin.site.site_title = "Révisions Étudiants"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("compte/", include("accounts.urls")),
+    path("tableau-de-bord/", include("dashboard.urls")),
     path("cours/", include("courses.urls")),
     path("quiz/", include("quizzes.urls")),
     path("revisions/", include("reviews.urls")),

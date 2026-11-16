@@ -70,7 +70,7 @@ class LoginLogoutTests(TestCase):
 
     def test_connexion_mene_aux_cours(self):
         response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": PASSWORD})
-        self.assertRedirects(response, reverse("courses:list"))
+        self.assertRedirects(response, reverse("dashboard:home"))
 
     def test_mauvais_mot_de_passe_refuse_avec_un_message(self):
         response = self.client.post(reverse("accounts:login"), {"username": "awa", "password": "faux"})
