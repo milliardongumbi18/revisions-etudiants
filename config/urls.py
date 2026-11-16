@@ -11,6 +11,7 @@ urlpatterns = [
     path("compte/", include("accounts.urls")),
     path("cours/", include("courses.urls")),
     path("quiz/", include("quizzes.urls")),
+    path("revisions/", include("reviews.urls")),
     path("", include("core.urls")),
 ]
 

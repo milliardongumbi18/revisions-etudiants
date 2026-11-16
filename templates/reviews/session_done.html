@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Bilan · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app flex justify-center py-14 md:py-20">
+  <div class="animate-in card auth-card w-full max-w-md text-center">
+    <p class="eyebrow">Révision terminée</p>
+
+    <div class="score-ring mx-auto mt-6" style="--p: {{ percent }}">
+      <span><strong>{{ percent }} %</strong><small>de réussite</small></span>
+    </div>
+
+    <h1 class="mt-6 text-2xl font-bold">
+      {% if percent >= 80 %}Excellent travail ! 🎉{% elif percent >= 50 %}Bien joué, continue !{% else %}Ne lâche rien : ces questions reviendront.{% endif %}
+    </h1>
+    <p class="text-muted mt-2">
+      {{ data.correct }} bonne{{ data.correct|pluralize }} réponse{{ data.correct|pluralize }} sur {{ data.done }}.
+      Les questions ratées reviendront dès demain.
+    </p>
+
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href="{{ data.return_url }}" class="btn btn-ghost">Retour</a>
+      <a href="{% url 'reviews:home' %}" class="btn btn-primary">Révisions du jour</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
