@@ -55,10 +55,10 @@
       <h2 class="mt-12 text-xl font-bold">À revoir, par cours</h2>
       <ul class="mt-4 grid gap-3 sm:grid-cols-2">
         {% for item in by_course %}
-          <li data-reveal style="--delay: {% widthratio forloop.counter0 1 60 %}ms">
+                    <li class="min-w-0" data-reveal style="--delay: {% widthratio forloop.counter0 1 60 %}ms">
             <div class="chapter-item" data-color="{{ item.course_color }}">
               <span class="chapter-num">{{ item.n }}</span>
-              <span class="min-w-0 truncate font-semibold">{{ item.course_title }}</span>
+              <span class="min-w-0 break-words font-semibold">{{ item.course_title }}</span>
             </div>
           </li>
         {% endfor %}

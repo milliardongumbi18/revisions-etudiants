@@ -1143,3 +1143,124 @@
 @property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
 @keyframes ring-fill { from { --p: 0; } }
 @keyframes pop-in { from { opacity: 0; transform: scale(.95); } }
+/* ==========================================================================
+   Ajouts étape 9 : navigation mobile, examens, planning, emploi du temps
+   ========================================================================== */
+@layer components {
+  /* Seconde ligne de navigation (mobile / tablette) */
+  .sub-nav { border-top: 1px solid var(--border); padding-block: .45rem; }
+  .sub-nav .nav-link { font-size: .85rem; }
+
+  /* Pastilles d'examen avec compte à rebours */
+  .exam-chip {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    max-width: 100%;
+    padding: .6rem .9rem .6rem .6rem;
+    border: 1px solid color-mix(in srgb, var(--course) 40%, var(--border));
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    transition: transform .2s var(--ease-out);
+  }
+  .exam-chip:hover { transform: translateY(-2px); }
+  .exam-countdown {
+    flex-shrink: 0;
+    padding: .45rem .6rem;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--course) 16%, var(--surface));
+    color: var(--course);
+    font-family: var(--font-display);
+    font-size: .9rem;
+    font-weight: 800;
+  }
+
+  /* Cartes des 14 jours */
+  .plan-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+  .plan-day { height: 100%; padding: 1.25rem; }
+  .plan-day.is-today {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent), var(--shadow);
+  }
+
+  .load-badge {
+    --l: var(--leaf);
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--l) 15%, transparent);
+    color: var(--l);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .load-badge[data-load="léger"] { --l: var(--brand); }
+  .load-badge[data-load="chargé"] { --l: var(--accent); }
+  .load-badge[data-load="très chargé"] { --l: var(--danger); }
+
+  /* Blocs de révision : barre de couleur proportionnelle à la durée */
+  .plan-blocks { display: grid; gap: .45rem; }
+  .plan-block {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .55rem .7rem;
+    border-radius: 10px;
+    background: var(--surface-2);
+    font-size: .85rem;
+    font-weight: 600;
+  }
+  .plan-block::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--part, 100%);
+    border-left: 3px solid var(--course, var(--brand));
+    background: color-mix(in srgb, var(--course, var(--brand)) 16%, transparent);
+    transform-origin: left;
+    animation: grow .9s var(--ease-out) both;
+  }
+  .plan-block > * { position: relative; }
+  .plan-block > :first-child { min-width: 0; overflow-wrap: anywhere; }
+  .plan-block > span:last-child:not(:first-child) { flex-shrink: 0; color: var(--muted); }
+  .plan-block.is-srs::before {
+    width: 100%;
+    border-left-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .plan-block.is-exam { color: var(--danger); }
+  .plan-block.is-exam::before {
+    width: 100%;
+    border-left-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+
+  /* Emploi du temps de la semaine */
+  .week-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+  .week-day {
+    display: grid;
+    align-content: start;
+    gap: .5rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .week-day-name { font-family: var(--font-display); font-weight: 700; }
+  .slot {
+    display: grid;
+    gap: .1rem;
+    padding: .55rem .65rem;
+    border-left: 3px solid var(--course);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--course) 10%, var(--surface));
+    transition: transform .2s var(--ease-out);
+  }
+  .slot:hover { transform: translateX(3px); }
+  .slot-time { font-size: .72rem; font-weight: 700; color: var(--muted); }
+  .slot-name { font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; }
+}

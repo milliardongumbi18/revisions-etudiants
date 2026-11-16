@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Planning · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="container-app py-12 md:py-16">
+
+  <div class="animate-in flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="eyebrow">Organisation</p>
+      <h1 class="mt-2 text-3xl font-extrabold md:text-4xl">Mon planning</h1>
+      <p class="text-muted mt-2 max-w-2xl">Calculé à partir de ton emploi du temps, de tes examens et de tes révisions espacées.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'planning:slot_create' %}" class="btn btn-ghost">+ Créneau de cours</a>
+      <a href="{% url 'planning:exam_create' %}" class="btn btn-primary">+ Examen</a>
+    </div>
+  </div>
+
+  {# ===== Examens à venir ===== #}
+  {% if exams %}
+    <div class="animate-in mt-8 flex flex-wrap gap-3" style="--delay: 80ms">
+      {% for exam in exams %}
+        <a href="{% url 'planning:exam_update' exam.pk %}" class="exam-chip" data-color="{{ exam.course.color }}">
+          <span class="exam-countdown">{% if exam.days_left == 0 %}Aujourd'hui{% else %}J-{{ exam.days_left }}{% endif %}</span>
+          <span class="min-w-0">
+            <span class="block break-words font-semibold">{{ exam.course.title }}</span>
+            <span class="text-muted block text-xs">{{ exam.title|default:"Examen" }} · {{ exam.date|date:"l j F" }}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ===== Planning des 14 jours ===== #}
+  <h2 class="mt-12 text-2xl font-bold">Les 14 prochains jours</h2>
+  {% if not has_courses %}
+    <div class="empty-state mt-6">
+      <h3 class="text-xl font-bold">Crée d'abord tes cours</h3>
+      <p class="text-muted mx-auto mt-2 max-w-md">Le planning répartit ton temps de révision entre tes cours.</p>
+      <a href="{% url 'courses:create' %}" class="btn btn-primary mt-6">Créer un cours</a>
+    </div>
+  {% else %}
+    <div class="plan-grid mt-6">
+      {% for day in plan %}
+        <div data-reveal style="--delay: {% widthratio forloop.counter0 1 40 %}ms">
+          <article class="card plan-day{% if forloop.first %} is-today{% endif %}">
+            <header class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-bold first-letter:uppercase">{% if forloop.first %}Aujourd'hui{% else %}{{ day.date|date:"l" }}{% endif %}</p>
+                <p class="text-muted text-sm">{{ day.date|date:"j F" }}</p>
+              </div>
+              <span class="load-badge" data-load="{{ day.load }}">{{ day.load }}</span>
+            </header>
+            {% if day.class_minutes %}
+              <p class="text-muted mt-2 text-xs">{{ day.class_duree }} de cours</p>
+            {% endif %}
+
+            <ul class="plan-blocks mt-4">
+              {% for block in day.blocks %}
+                {% if block.kind == "examen" %}
+                  <li class="plan-block is-exam"><span>🎓 {{ block.title }}</span></li>
+                {% elif block.kind == "revisions" %}
+                  <li class="plan-block is-srs">
+                    <a href="{% url 'reviews:home' %}">🔁 {{ block.title }}</a><span>{{ block.duree }}</span>
+                  </li>
+                {% else %}
+                  <li class="plan-block" data-color="{{ block.color }}" style="--part: {% widthratio block.minutes day.budget 100 %}%">
+                    <span>{{ block.title }}</span><span>{{ block.duree }}</span>
+                  </li>
+                {% endif %}
+              {% empty %}
+                <li class="text-muted text-sm">Repos bien mérité 😌</li>
+              {% endfor %}
+            </ul>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ===== Emploi du temps ===== #}
+  <h2 class="mt-14 text-2xl font-bold">Mon emploi du temps</h2>
+  <p class="text-muted mt-1 text-sm">Tes horaires de cours, chaque semaine. Ils déterminent tes jours chargés et tes jours libres.</p>
+  <div class="week-grid mt-6">
+    {% for jour, creneaux in week %}
+      <div class="week-day">
+        <p class="week-day-name">{{ jour }}</p>
+        {% for slot in creneaux %}
+          <a href="{% url 'planning:slot_update' slot.pk %}" class="slot" data-color="{{ slot.course.color|default:'indigo' }}">
+            <span class="slot-time">{{ slot.start_time|time:"H:i" }} – {{ slot.end_time|time:"H:i" }}</span>
+            <span class="slot-name">{{ slot.name }}</span>
+          </a>
+        {% empty %}
+          <p class="text-muted text-xs">Libre</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+</section>
+{% endblock %}
