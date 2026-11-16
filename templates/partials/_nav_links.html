@@ -1,7 +1,9 @@
+<a href="{% url 'dashboard:home' %}" class="nav-link"
+   {% if request.resolver_match.app_name == 'dashboard' %}aria-current="page"{% endif %}>Accueil</a>
 <a href="{% url 'courses:list' %}" class="nav-link"
    {% if request.resolver_match.app_name == 'courses' %}aria-current="page"{% endif %}>Mes cours</a>
 <a href="{% url 'reviews:home' %}" class="nav-link"
-   {% if request.resolver_match.app_name == 'reviews' %}aria-current="page"{% endif %}>Réviser</a>
+   {% if request.resolver_match.app_name == 'reviews' %}aria-current="page"{% endif %}>Réviser{% if nb_revisions_dues %}<span class="nav-badge">{{ nb_revisions_dues }}<span class="sr-only"> à réviser</span></span>{% endif %}</a>
 <a href="{% url 'planning:home' %}" class="nav-link"
    {% if request.resolver_match.app_name == 'planning' %}aria-current="page"{% endif %}>Planning</a>
 <a href="{% url 'accounts:profile' %}" class="nav-link"

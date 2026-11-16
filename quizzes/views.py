@@ -14,6 +14,7 @@ from services.ai_provider import AIError
 from services.quiz_generator import generate_quiz
 
 from .models import Question, Quiz
+from reviews.session import create_missing_cards
 
 MIN_NOTES_CHARS = 200
 DELAI_ENTRE_GENERATIONS = timedelta(seconds=30)   # protège le quota gratuit contre les clics répétés
@@ -64,6 +65,7 @@ class GenerateQuizView(LoginRequiredMixin, View):
             )
 
         messages.success(request, f"Quiz de {len(questions)} questions généré !")
+        create_missing_cards(request.user, quiz=quiz)   # les questions entrent tout de suite dans les révisions
         return redirect(quiz)
 
 

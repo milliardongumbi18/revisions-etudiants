@@ -1264,3 +1264,90 @@
   .slot-time { font-size: .72rem; font-weight: 700; color: var(--muted); }
   .slot-name { font-size: .85rem; font-weight: 600; overflow-wrap: anywhere; }
 }
+/* ==========================================================================
+   Ajouts étape 10 : tableau de bord, badge de notification
+   ========================================================================== */
+@layer components {
+  /* Badge « questions à réviser » dans l'en-tête */
+  .nav-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    margin-left: .3rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #1b2240;
+    font-size: .68rem;
+    font-weight: 800;
+    line-height: 1;
+    vertical-align: middle;
+    animation: pop-in .4s var(--ease-spring);
+  }
+
+  /* Tuiles */
+  .stats-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+  .stat-card { display: grid; gap: .3rem; height: 100%; padding: 1.4rem 1.5rem; }
+  .stat-icon { font-size: 1.6rem; line-height: 1; }
+  .flame { display: inline-block; transform-origin: 50% 90%; animation: flicker 1.8s ease-in-out infinite; }
+  .flame.is-idle { animation: none; filter: grayscale(1); opacity: .6; }
+
+  /* Bien démarrer */
+  .onboarding { border-style: dashed; }
+  .onboarding-steps { display: grid; gap: .6rem; }
+  .onboarding-steps li { display: flex; align-items: center; gap: .75rem; }
+  .onboarding-check {
+    width: 1.8rem;
+    height: 1.8rem;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: .8rem;
+    font-weight: 800;
+  }
+  .onboarding-steps li.is-done .onboarding-check { border-color: var(--leaf); background: var(--leaf); color: #fff; }
+  .onboarding-steps li.is-done span:last-child { color: var(--muted); text-decoration: line-through; }
+
+  /* Graphique d'activité : les barres montent une à une */
+  .activity-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .activity-bar {
+    flex: 1;
+    min-width: 3px;
+    height: var(--h);
+    border-radius: 4px 4px 1px 1px;
+    background: linear-gradient(180deg, var(--grad-a), var(--grad-b));
+    opacity: .85;
+    transform-origin: bottom;
+    animation: bar-up .7s var(--ease-out) both;
+    animation-delay: calc(var(--i) * 18ms);
+    transition: opacity .2s;
+  }
+  .activity-bar:hover,
+  .activity-bar.is-today { opacity: 1; }
+  .activity-bar.is-empty { height: 4px; background: var(--surface-2); }
+
+  .exam-big {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--course, var(--brand));
+  }
+  .progress-course > span { background: var(--course, var(--brand)); }
+}
+
+@keyframes flicker {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50%      { transform: rotate(3deg) scale(1.08); }
+}
+@keyframes bar-up { from { transform: scaleY(0); } }

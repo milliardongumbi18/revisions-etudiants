@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord · Révisions Étudiants{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="container-app py-12 md:py-14">
+
+    {# ===== Accueil ===== #}
+    <div class="animate-in">
+      <p class="eyebrow">{{ aujourd_hui|date:"l j F Y" }}</p>
+      <h1 class="mt-2 text-3xl font-extrabold md:text-5xl">
+        Bonjour <span class="text-gradient">{{ user.first_name|default:user.username }}</span> 👋
+      </h1>
+      <p class="text-muted mt-3 max-w-2xl">
+        {% if due_count %}Tu as {{ due_count }} question{{ due_count|pluralize }} à réviser aujourd'hui.
+        {% elif total_cartes %}Tout est à jour : profites-en pour avancer dans tes cours.
+        {% else %}Bienvenue ! Voici comment bien démarrer.{% endif %}
+      </p>
+    </div>
+
+    {# ===== Bien démarrer ===== #}
+    {% if not onboarding_fini %}
+      <div class="animate-in card onboarding mt-8" style="--delay: 80ms">
+        <h2 class="text-lg font-bold">Bien démarrer</h2>
+        <ol class="onboarding-steps mt-4">
+          {% for titre, fait, url in etapes %}
+            <li class="{% if fait %}is-done{% endif %}">
+              <span class="onboarding-check" aria-hidden="true">{% if fait %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+              {% if fait %}<span>{{ titre }}</span>{% else %}<a href="{{ url }}" class="link">{{ titre }}</a>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      </div>
+    {% endif %}
+
+    {# ===== Tuiles ===== #}
+    <div class="stats-grid mt-8">
+      <div data-reveal>
+        <a href="{% url 'reviews:home' %}" class="card card-hover stat-card">
+          <span class="stat-icon">🔁</span>
+          <span class="stat-value">{{ due_count }}</span>
+          <span class="text-muted text-sm">à réviser aujourd'hui</span>
+        </a>
+      </div>
+      <div data-reveal style="--delay: 80ms">
+        <div class="card stat-card">
+          <span class="stat-icon"><span class="flame{% if not a_revise_aujourdhui %} is-idle{% endif %}">🔥</span></span>
+          <span class="stat-value">{{ serie }} j</span>
+          <span class="text-muted text-sm">série en cours · record {{ meilleure_serie }} j</span>
+        </div>
+      </div>
+      <div data-reveal style="--delay: 160ms">
+        <div class="card stat-card">
+          <span class="stat-icon">🎯</span>
+          <span class="stat-value">{% if taux_reussite is None %}—{% else %}{{ taux_reussite }} %{% endif %}</span>
+          <span class="text-muted text-sm">de réussite sur 30 jours</span>
+        </div>
+      </div>
+      <div data-reveal style="--delay: 240ms">
+        <div class="card stat-card">
+          <span class="stat-icon">🏆</span>
+          <span class="stat-value">{{ maitrisees }}<small class="text-muted text-base font-semibold"> / {{ total_cartes }}</small></span>
+          <span class="text-muted text-sm">questions maîtrisées</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+
+      {# ===== Colonne gauche ===== #}
+      <div class="grid content-start gap-6">
+        <div data-reveal>
+          <article class="card">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-bold">Au programme aujourd'hui</h2>
+              <span class="load-badge" data-load="{{ plan_du_jour.load }}">{{ plan_du_jour.load }}</span>
+            </div>
+            <ul class="plan-blocks mt-4">
+              {% for block in plan_du_jour.blocks %}
+                {% if block.kind == "examen" %}
+                  <li class="plan-block is-exam"><span>🎓 {{ block.title }}</span></li>
+                {% elif block.kind == "revisions" %}
+                  <li class="plan-block is-srs">
+                    <a href="{% url 'reviews:home' %}">🔁 {{ block.title }}</a><span>{{ block.duree }}</span>
+                  </li>
+                {% else %}
+                  <li class="plan-block" data-color="{{ block.color }}" style="--part: {% widthratio block.minutes plan_du_jour.budget 100 %}%">
+                    <span>{{ block.title }}</span><span>{{ block.duree }}</span>
+                  </li>
+                {% endif %}
+              {% empty %}
+                <li class="text-muted text-sm">Rien de prévu : ajoute un cours pour obtenir ton programme.</li>
+              {% endfor %}
+            </ul>
+            <p class="mt-4"><a href="{% url 'planning:home' %}" class="back-link">Voir tout le planning →</a></p>
+          </article>
+        </div>
+
+        <div data-reveal>
+          <article class="card">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="text-lg font-bold">Activité</h2>
+              <span class="text-muted text-sm">{{ revisions_30j }} révision{{ revisions_30j|pluralize }} en 30 jours</span>
+            </div>
+            <div class="activity-chart mt-5" role="img" aria-label="Nombre de révisions par jour sur les 30 derniers jours">
+              {% for jour in activite %}
+                <span class="activity-bar{% if not jour.n %} is-empty{% endif %}{% if forloop.last %} is-today{% endif %}"
+                      style="--h: {{ jour.hauteur }}%; --i: {{ forloop.counter0 }}"
+                      title="{{ jour.date|date:'D j M' }} : {{ jour.n }} révision{{ jour.n|pluralize }}"></span>
+              {% endfor %}
+            </div>
+            <div class="text-muted mt-2 flex justify-between text-xs">
+              <span>{{ activite.0.date|date:"j M" }}</span>
+              <span>Aujourd'hui</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      {# ===== Colonne droite ===== #}
+      <div class="grid content-start gap-6">
+        <div data-reveal>
+          <article class="card" {% if prochain_examen %}data-color="{{ prochain_examen.course.color }}"{% endif %}>
+            <h2 class="text-lg font-bold">Prochain examen</h2>
+            {% if prochain_examen %}
+              <p class="exam-big mt-3">{% if prochain_examen.days_left == 0 %}Aujourd'hui{% else %}J-{{ prochain_examen.days_left }}{% endif %}</p>
+              <p class="mt-2 break-words font-semibold">{{ prochain_examen.course.title }}</p>
+              <p class="text-muted text-sm">{{ prochain_examen.title|default:"Examen" }} · {{ prochain_examen.date|date:"l j F" }}</p>
+            {% else %}
+              <p class="text-muted mt-2 text-sm">Aucun examen prévu.</p>
+              <a href="{% url 'planning:exam_create' %}" class="btn btn-ghost btn-sm mt-4">+ Ajouter un examen</a>
+            {% endif %}
+          </article>
+        </div>
+
+        <div data-reveal>
+          <article class="card">
+            <h2 class="text-lg font-bold">Progression par cours</h2>
+            {% if progression %}
+              <ul class="mt-4 grid gap-5">
+                {% for ligne in progression %}
+                  <li class="min-w-0" data-color="{{ ligne.course.color }}">
+                    <div class="flex items-baseline justify-between gap-3">
+                      <a href="{{ ligne.course.get_absolute_url }}" class="min-w-0 break-words font-semibold">{{ ligne.course.title }}</a>
+                      <span class="text-muted shrink-0 text-sm">{{ ligne.pourcentage }} %</span>
+                    </div>
+                    <div class="progress progress-course mt-2" style="--value: {{ ligne.pourcentage }}%"><span></span></div>
+                    <p class="text-muted mt-1 text-xs">
+                      {% if ligne.total %}
+                        {{ ligne.maitrisees }}/{{ ligne.total }} maîtrisées{% if ligne.reussite is not None %} · {{ ligne.reussite }} % de bonnes réponses{% endif %}
+                      {% else %}
+                        {{ ligne.course.nb_chapitres }} chapitre{{ ligne.course.nb_chapitres|pluralize }} · génère un quiz pour suivre ta progression
+                      {% endif %}
+                    </p>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted mt-2 text-sm">Aucun cours pour l'instant.</p>
+            {% endif %}
+          </article>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}

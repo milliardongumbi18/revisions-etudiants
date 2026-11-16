@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     "courses",
     "quizzes",
     "reviews",
-    "planning"
+    "planning",
+    "dashboard",
 ]
 
 MIDDLEWARE = [
@@ -73,9 +74,11 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "reviews.context_processors.revisions_dues",   # badge « Réviser » sur toutes les pages
             ],
         },
     },
+    
 ]
 
 
@@ -105,7 +108,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Où aller selon la situation (noms d'URL, pas de chemins en dur)
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "courses:list"       # deviendra le tableau de bord plus tard   # deviendra le tableau de bord plus tard
+LOGIN_REDIRECT_URL = "dashboard:home"      # deviendra le tableau de bord plus tard   # deviendra le tableau de bord plus tard
 LOGOUT_REDIRECT_URL = "core:home"
 
 
