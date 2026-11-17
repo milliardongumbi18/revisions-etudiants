@@ -1,0 +1,19 @@
+/*
+  Source Tailwind, compilée vers static/css/tailwind.css.
+  Ne jamais modifier le fichier compilé : il est régénéré à chaque build.
+*/
+@import "tailwindcss" source(none);
+
+/* Les seuls dossiers où Tailwind cherche les classes utilisées (rapide, et ignore .venv) */
+@source "../../templates";
+@source "../../core/templates";
+@source "../../accounts/templates";
+@source "../../courses/templates";
+@source "../../quizzes/templates";
+@source "../../reviews/templates";
+@source "../../planning/templates";
+@source "../../dashboard/templates";
+@source "../js";
+
+/* Les classes dark: suivent NOTRE bouton de thème (data-theme), pas seulement le réglage du système */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

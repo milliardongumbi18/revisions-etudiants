@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+import re
 
 
 class HomePageTests(TestCase):
@@ -22,3 +23,16 @@ class HomePageTests(TestCase):
         response = self.client.get("/favicon.ico")
         self.assertEqual(response.status_code, 301)
         self.assertTrue(response["Location"].endswith("favicon.svg"))
+        
+    def test_en_tete_csp_avec_nonce_sur_le_script_inline(self):
+        response = self.client.get("/")
+        csp = response["Content-Security-Policy"]
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("frame-ancestors 'none'", csp)
+        nonce = re.search(r"'nonce-([^']+)'", csp).group(1)
+        self.assertContains(response, f'nonce="{nonce}"')   # le même nonce est dans la page
+
+    def test_tailwind_compile_au_lieu_du_cdn(self):
+        response = self.client.get("/")
+        self.assertNotContains(response, "@tailwindcss/browser")
+        self.assertContains(response, "css/tailwind.css")
