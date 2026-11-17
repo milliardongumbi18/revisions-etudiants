@@ -8,6 +8,7 @@ Un seul fichier de réglages, piloté par les variables d'environnement :
 from pathlib import Path
 
 import environ
+from django.utils.csp import CSP
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # sert les fichiers statiques en production
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,6 +77,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "reviews.context_processors.revisions_dues",   # badge « Réviser » sur toutes les pages
+                "django.template.context_processors.csp",
             ],
         },
     },
@@ -172,6 +175,22 @@ if STORAGE_BUCKET:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- Content Security Policy : le navigateur n'exécute que ce que l'on autorise ici ----
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    # Scripts : nos fichiers + les scripts inline portant le nonce du jour (anti-flash du thème)
+    "script-src": [CSP.SELF, CSP.NONCE],
+    # Styles : 'unsafe-inline' nécessaire pour les attributs style="--delay: …".
+    # Pas de nonce ici : sa présence ferait ignorer 'unsafe-inline' par le navigateur.
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE, "https://fonts.googleapis.com"],
+    "font-src": [CSP.SELF, "https://fonts.gstatic.com"],
+    "img-src": [CSP.SELF, "data:"],
+    "connect-src": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],          # empêche de détourner les liens relatifs avec <base>
+    "form-action": [CSP.SELF],       # nos formulaires ne peuvent envoyer que vers notre site
+    "frame-ancestors": [CSP.NONE],   # interdit d'afficher le site dans une iframe (clickjacking)
+}
 
 # --- Durcissement en production --------------------------------------------------
 
