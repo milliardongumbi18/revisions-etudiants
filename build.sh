@@ -11,5 +11,5 @@ chmod +x tailwindcss
 ./tailwindcss -i static/src/tailwind.css -o static/css/tailwind.css --minify
 
 # Le CSS doit exister AVANT collectstatic
-python manage.py collectstatic --no-input
+python manage.py collectstatic --no-input --ignore=src/tailwind.css
 python manage.py migrate
