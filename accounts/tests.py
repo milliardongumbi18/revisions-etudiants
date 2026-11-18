@@ -310,6 +310,10 @@ class DeleteAccountTests(TestCase):
         self.assertRedirects(response, reverse("accounts:profile"))
         self.assertTrue(User.objects.filter(pk=demo.pk).exists())
 
+    def test_bouton_visible_sur_le_profil(self):
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("accounts:profile")), self.url)
+
 
 # Fichiers gardés en mémoire pendant les tests : rien sur le disque, rien sur Supabase
 STOCKAGE_MEMOIRE = {
