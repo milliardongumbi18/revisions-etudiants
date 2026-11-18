@@ -9,8 +9,8 @@
     <aside class="animate-in">
       <div class="card text-center">
         <div class="avatar mx-auto" aria-hidden="true">{{ user.username|slice:":2"|upper }}</div>
-        <h1 class="mt-4 text-2xl font-bold">{{ user.get_full_name|default:user.username }}</h1>
-        <p class="text-muted text-sm">@{{ user.username }}</p>
+        <h1 class="mt-4 text-2xl font-bold break-words">{{ user.get_full_name|default:user.username }}</h1>
+        <p class="text-muted text-sm break-words">@{{ user.username }}</p>
         {% if user.university %}
           <p class="mt-4"><span class="badge">{{ user.university }}</span></p>
         {% endif %}
@@ -21,21 +21,38 @@
       </div>
     </aside>
 
-    <div class="animate-in" style="--delay: 120ms">
+    <div class="animate-in min-w-0" style="--delay: 120ms">
       <div class="card">
-        <h2 class="text-xl font-bold">Mes informations</h2>
-        <p class="text-muted mt-1 text-sm">Ces informations restent privées.</p>
-
-        <form method="post" class="mt-6 grid gap-5 md:grid-cols-2" data-auth-form novalidate>
-          {% csrf_token %}
-          {% include "partials/_form_errors.html" %}
-          {% for field in form %}
-            {% include "partials/_field.html" %}
-          {% endfor %}
-          <div class="flex justify-end md:col-span-2">
-            <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold">Mes informations</h2>
+            <p class="text-muted mt-1 text-sm">Ces informations restent privées.</p>
           </div>
-        </form>
+          <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary btn-sm">Modifier mes informations</a>
+        </div>
+
+        <dl class="info-list">
+          <div class="info-item">
+            <dt>Prénom</dt>
+            <dd>{% if user.first_name %}{{ user.first_name }}{% else %}<span class="info-empty">Non renseigné</span>{% endif %}</dd>
+          </div>
+          <div class="info-item">
+            <dt>Nom</dt>
+            <dd>{% if user.last_name %}{{ user.last_name }}{% else %}<span class="info-empty">Non renseigné</span>{% endif %}</dd>
+          </div>
+          <div class="info-item info-item-wide">
+            <dt>Adresse e-mail</dt>
+            <dd>{{ user.email }}</dd>
+          </div>
+          <div class="info-item">
+            <dt>Université</dt>
+            <dd>{% if user.university %}{{ user.university }}{% else %}<span class="info-empty">Non renseignée</span>{% endif %}</dd>
+          </div>
+          <div class="info-item">
+            <dt>Filière / promotion</dt>
+            <dd>{% if user.program %}{{ user.program }}{% else %}<span class="info-empty">Non renseignée</span>{% endif %}</dd>
+          </div>
+        </dl>
       </div>
     </div>
 

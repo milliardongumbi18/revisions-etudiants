@@ -99,7 +99,7 @@ class DemoAccountTests(TestCase):
             "old_password": self.MDP, "new_password1": "Pirate-Mdp-2026", "new_password2": "Pirate-Mdp-2026",
         })
         self.assertRedirects(response, reverse("accounts:profile"))
-        self.client.post(reverse("accounts:profile"), {
+        self.client.post(reverse("accounts:profile_edit"), {
             "first_name": "Pirate", "last_name": "X", "email": "pirate@exemple.cd", "university": "", "program": "",
         })
         user.refresh_from_db()
