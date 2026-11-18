@@ -210,7 +210,9 @@ if not DEBUG:
 AI_PROVIDER = env("AI_PROVIDER", default="gemini")       # "gemini" ou "fake" (démo, sans réseau)
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")      # jamais dans le code : .env / Render
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-latest")
-AI_TIMEOUT = env.int("AI_TIMEOUT", default=90)  
+AI_TIMEOUT = env.int("AI_TIMEOUT", default=90)
+# --- Compte de démonstration (portfolio) : python manage.py creer_demo --------------
+DEMO_PASSWORD = env("DEMO_PASSWORD", default="")  
 # Tests uniquement : hachage rapide des mots de passe (jamais utilisé en production)
 import sys
 

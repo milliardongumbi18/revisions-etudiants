@@ -6,6 +6,8 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
+from core.demo import MESSAGE_DEMO, est_compte_demo
+
 from .forms import LoginForm, ProfileForm, SignUpForm, StyledPasswordChangeForm
 from .models import User
 
@@ -62,6 +64,13 @@ class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):
     success_url = reverse_lazy("accounts:profile")
     success_message = "Mot de passe modifié avec succès."
 
+    def dispatch(self, request, *args, **kwargs):
+        # Compte de démo : mot de passe public, il ne doit pas pouvoir être changé
+        if est_compte_demo(request.user):
+            messages.info(request, MESSAGE_DEMO)
+            return redirect("accounts:profile")
+        return super().dispatch(request, *args, **kwargs)
+
 
 @login_required
 def profile(request):
@@ -71,6 +80,9 @@ def profile(request):
     instance = User.objects.get(pk=request.user.pk)
 
     if request.method == "POST":
+        if est_compte_demo(request.user):
+            messages.info(request, MESSAGE_DEMO)
+            return redirect("accounts:profile")
         form = ProfileForm(request.POST, instance=instance)
         if form.is_valid():
             form.save()

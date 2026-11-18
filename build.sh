@@ -13,3 +13,9 @@ chmod +x tailwindcss
 # Le CSS doit exister AVANT collectstatic
 python manage.py collectstatic --no-input --ignore=src/tailwind.css
 python manage.py migrate
+
+# Compte de démonstration remis à neuf à chaque déploiement (si DEMO_PASSWORD est défini).
+# "|| echo" : un souci sur la démo ne doit jamais bloquer la mise en ligne.
+if [ -n "${DEMO_PASSWORD:-}" ]; then
+  python manage.py creer_demo || echo "Attention : compte de démonstration non réinitialisé."
+fi
