@@ -122,15 +122,22 @@ class ResetPasswordCompleteView(PasswordResetCompleteView):
 
 @login_required
 def profile(request):
-    """Profil de l'utilisateur connecté, toujours via request.user (pas d'id dans l'URL)."""
+    """Profil en lecture seule : les informations, et un bouton pour les modifier."""
+    return render(request, "accounts/profile.html")
+
+
+@login_required
+def profile_edit(request):
+    """Modification du profil, toujours via request.user (pas d'id dans l'URL)."""
+    if est_compte_demo(request.user):
+        messages.info(request, MESSAGE_DEMO)
+        return redirect("accounts:profile")
+
     # Copie fraîche : si le formulaire est invalide, les valeurs refusées
-    # ne s'affichent pas dans l'en-tête ni dans la carte de profil.
+    # n'apparaissent pas ailleurs dans la page (en-tête, menu).
     instance = User.objects.get(pk=request.user.pk)
 
     if request.method == "POST":
-        if est_compte_demo(request.user):
-            messages.info(request, MESSAGE_DEMO)
-            return redirect("accounts:profile")
         form = ProfileForm(request.POST, instance=instance)
         if form.is_valid():
             form.save()
@@ -139,4 +146,4 @@ def profile(request):
     else:
         form = ProfileForm(instance=instance)
 
-    return render(request, "accounts/profile.html", {"form": form})
+    return render(request, "accounts/profile_edit.html", {"form": form})

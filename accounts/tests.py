@@ -72,6 +72,13 @@ class SignupTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context["form"], "email", "Un compte utilise déjà cette adresse e-mail.")
         self.assertEqual(User.objects.count(), 1)
+    
+    def test_arobase_refuse_dans_le_nom_d_utilisateur(self):
+        response = self.client.post(reverse("accounts:signup"), self.donnees(username="@awa"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="@awa").exists())
+        self.assertFormError(response.context["form"], "username",
+                             "Lettres, chiffres et . + - _ uniquement (pas de @ ni d'espace).")
 
 
 class LoginLogoutTests(TestCase):
@@ -103,7 +110,7 @@ class LoginLogoutTests(TestCase):
 
 class ProfileTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD, university="UNIKIN")
         User.objects.create_user("bob", email="bob@exemple.cd", password=PASSWORD)
 
     def donnees(self, **modifs):
@@ -122,16 +129,28 @@ class ProfileTests(TestCase):
         response = self.client.get(url)
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={url}")
 
+    def test_profil_affiche_les_infos_sans_formulaire(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertContains(response, "UNIKIN")
+        self.assertContains(response, reverse("accounts:profile_edit"))
+        self.assertNotContains(response, 'name="first_name"')   # aucun champ modifiable
+
+    def test_page_de_modification_exige_une_connexion(self):
+        url = reverse("accounts:profile_edit")
+        response = self.client.get(url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={url}")
+
     def test_modification_du_profil(self):
         self.client.force_login(self.user)
-        response = self.client.post(reverse("accounts:profile"), self.donnees())
+        response = self.client.post(reverse("accounts:profile_edit"), self.donnees())
         self.assertRedirects(response, reverse("accounts:profile"))
         self.user.refresh_from_db()
         self.assertEqual(self.user.university, "UCC")
 
     def test_email_d_un_autre_compte_refuse(self):
         self.client.force_login(self.user)
-        response = self.client.post(reverse("accounts:profile"), self.donnees(email="BOB@exemple.cd"))
+        response = self.client.post(reverse("accounts:profile_edit"), self.donnees(email="BOB@exemple.cd"))
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context["form"], "email", "Un compte utilise déjà cette adresse e-mail.")
 

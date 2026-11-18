@@ -1384,3 +1384,41 @@
   }
   .forgot-link:hover { color: var(--brand); text-decoration-color: currentColor; }
 }
+/* ==========================================================================
+   Ajouts étape 12b : profil en lecture seule
+   ========================================================================== */
+@layer components {
+  .info-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .info-list { grid-template-columns: 1fr 1fr; }
+    .info-item-wide { grid-column: 1 / -1; }
+  }
+  .info-item {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--surface) 65%, var(--bg));
+    transition: border-color .2s, transform .2s var(--ease-out);
+  }
+  .info-item:hover {
+    border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+    transform: translateY(-1px);
+  }
+  .info-item dt {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .info-item dd {
+    margin-top: .35rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;   /* longues adresses e-mail : pas de débordement sur mobile */
+  }
+  .info-empty { color: var(--muted); font-weight: 500; font-style: italic; }
+}

@@ -15,6 +15,7 @@ from core.demo import est_compte_demo
 from core.forms import StyledFormMixin
 
 from .models import User
+from django.core.validators import RegexValidator
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,12 @@ EMAIL_DEJA_UTILISE = "Un compte utilise déjà cette adresse e-mail."
 MAX_ECHECS_CONNEXION = 5
 DUREE_BLOCAGE = 15 * 60          # secondes
 DELAI_ENTRE_EMAILS = 5 * 60      # au plus un e-mail de réinitialisation par adresse toutes les 5 minutes
+
+# Comme le validateur de Django, mais SANS le @ (évite « @@nom » et la confusion avec un e-mail)
+NOM_UTILISATEUR_VALIDE = RegexValidator(
+    r"^[\w.+-]+\Z",
+    "Lettres, chiffres et . + - _ uniquement (pas de @ ni d'espace).",
+)
 
 
 def cle_cache(prefixe, valeur):
@@ -49,14 +56,18 @@ class SignUpForm(StyledFormMixin, UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["username"].help_text = "Lettres, chiffres et @ . + - _ uniquement."
+        self.fields["username"].help_text = "Lettres, chiffres et . + - _ uniquement."
         self.fields["email"].widget.attrs["placeholder"] = "toi@exemple.cd"
         self.fields["university"].widget.attrs["placeholder"] = "Ex. Université de Kinshasa (UNIKIN)"
         self.fields["program"].widget.attrs["placeholder"] = "Ex. L2 Informatique"
 
+    def clean_username(self):
+        username = super().clean_username()   # Django vérifie déjà l'unicité (sans tenir compte des majuscules)
+        NOM_UTILISATEUR_VALIDE(username)
+        return username
+
     def clean_email(self):
         return email_normalise_et_libre(self.cleaned_data["email"])
-
 
 class LoginForm(StyledFormMixin, AuthenticationForm):
     """
