@@ -4,6 +4,15 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
 from django.core.cache import cache
+import json
+import re
+from unittest import mock
+
+from django.core import mail
+from django.core.mail import send_mail
+from django.test import override_settings
+
+from core.demo import DEMO_EMAIL, DEMO_USERNAME
 
 User = get_user_model()
 PASSWORD = "Kinshasa-Revise-2026!"
@@ -185,3 +194,60 @@ class LoginThrottleTests(TestCase):
         self.echouer(4)
         response = self.client.post(self.url, {"username": "awa", "password": PASSWORD})
         self.assertEqual(response.status_code, 302)   # toujours autorisé
+    
+
+class PasswordResetTests(TestCase):
+    def setUp(self):
+        cache.clear()   # remet à zéro l'anti-abus (1 e-mail / 5 min)
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        self.url = reverse("accounts:password_reset")
+
+    def demander(self, email="awa@exemple.cd"):
+        return self.client.post(self.url, {"email": email})
+
+    def test_page_mot_de_passe_oublie_s_affiche(self):
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+
+    def test_envoie_un_lien_a_une_adresse_connue(self):
+        response = self.demander("AWA@exemple.cd")   # majuscules : le compte est quand même retrouvé
+        self.assertRedirects(response, reverse("accounts:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["awa@exemple.cd"])
+        self.assertIn("/compte/reinitialiser/", mail.outbox[0].body)
+
+    def test_adresse_inconnue_meme_page_et_aucun_email(self):
+        response = self.demander("inconnu@exemple.cd")
+        self.assertRedirects(response, reverse("accounts:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_parcours_complet_jusqu_au_nouveau_mot_de_passe(self):
+        self.demander()
+        lien = re.search(r"https?://\S+", mail.outbox[0].body).group(0)
+        response = self.client.get(lien, follow=True)   # Django retire le jeton de l'URL puis redirige
+        formulaire = response.redirect_chain[-1][0]
+        response = self.client.post(formulaire, {"new_password1": NEW_PASSWORD, "new_password2": NEW_PASSWORD})
+        self.assertRedirects(response, reverse("accounts:password_reset_complete"))
+        self.assertTrue(self.client.login(username="awa", password=NEW_PASSWORD))
+
+    def test_un_seul_email_par_tranche_de_5_minutes(self):
+        self.demander()
+        self.demander()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_jamais_d_email_pour_le_compte_demo(self):
+        User.objects.create_user(DEMO_USERNAME, email=DEMO_EMAIL, password=PASSWORD)
+        self.demander(DEMO_EMAIL)
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class BrevoBackendTests(TestCase):
+    @override_settings(EMAIL_BACKEND="core.email_backend.BrevoEmailBackend", BREVO_API_KEY="cle-de-test")
+    def test_envoie_par_l_api_https_de_brevo(self):
+        with mock.patch("core.email_backend.urllib.request.urlopen") as urlopen:
+            send_mail("Sujet", "Corps du message", "Révisions Étudiants <envoi@exemple.cd>", ["awa@exemple.cd"])
+        requete = urlopen.call_args.args[0]
+        corps = json.loads(requete.data)
+        self.assertEqual(requete.get_header("Api-key"), "cle-de-test")
+        self.assertEqual(corps["sender"], {"name": "Révisions Étudiants", "email": "envoi@exemple.cd"})
+        self.assertEqual(corps["to"], [{"email": "awa@exemple.cd"}])
+        self.assertEqual(corps["subject"], "Sujet")

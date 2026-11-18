@@ -1367,3 +1367,20 @@
     animation: float 6s ease-in-out infinite;
   }
 }
+/* ==========================================================================
+   Ajouts étape 12a : lien « Mot de passe oublié ? »
+   ========================================================================== */
+@layer components {
+  .forgot-link {
+    justify-self: end;
+    margin-top: -.5rem;
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: transparent;
+    transition: color .2s, text-decoration-color .2s;
+  }
+  .forgot-link:hover { color: var(--brand); text-decoration-color: currentColor; }
+}

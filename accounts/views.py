@@ -1,14 +1,29 @@
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView
+from django.contrib.auth.views import (
+    LoginView,
+    LogoutView,
+    PasswordChangeView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
+)
 from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
 from core.demo import MESSAGE_DEMO, est_compte_demo
 
-from .forms import LoginForm, ProfileForm, SignUpForm, StyledPasswordChangeForm
+from .forms import (
+    LoginForm,
+    ProfileForm,
+    SignUpForm,
+    StyledPasswordChangeForm,
+    StyledPasswordResetForm,
+    StyledSetPasswordForm,
+)
 from .models import User
 
 
@@ -70,6 +85,39 @@ class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):
             messages.info(request, MESSAGE_DEMO)
             return redirect("accounts:profile")
         return super().dispatch(request, *args, **kwargs)
+
+
+# --- Mot de passe oublié : 4 écrans fournis par Django, à nos couleurs ---------------------
+
+class ResetPasswordView(PasswordResetView):
+    """1. Saisie de l'e-mail → envoi d'un lien signé, valable PASSWORD_RESET_TIMEOUT."""
+
+    form_class = StyledPasswordResetForm
+    template_name = "accounts/password_reset_form.html"
+    subject_template_name = "accounts/emails/password_reset_subject.txt"
+    email_template_name = "accounts/emails/password_reset.txt"
+    html_email_template_name = "accounts/emails/password_reset.html"
+    success_url = reverse_lazy("accounts:password_reset_done")
+
+
+class ResetPasswordDoneView(PasswordResetDoneView):
+    """2. « Si un compte existe, un e-mail a été envoyé » (même message dans tous les cas)."""
+
+    template_name = "accounts/password_reset_done.html"
+
+
+class ResetPasswordConfirmView(PasswordResetConfirmView):
+    """3. Lien de l'e-mail : vérifie le jeton, puis demande le nouveau mot de passe."""
+
+    form_class = StyledSetPasswordForm
+    template_name = "accounts/password_reset_confirm.html"
+    success_url = reverse_lazy("accounts:password_reset_complete")
+
+
+class ResetPasswordCompleteView(PasswordResetCompleteView):
+    """4. Confirmation finale, avec un lien vers la connexion."""
+
+    template_name = "accounts/password_reset_complete.html"
 
 
 @login_required

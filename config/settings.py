@@ -214,6 +214,13 @@ AI_TIMEOUT = env.int("AI_TIMEOUT", default=90)
 # --- Compte de démonstration (portfolio) : python manage.py creer_demo --------------
 DEMO_PASSWORD = env("DEMO_PASSWORD", default="")  
 # Tests uniquement : hachage rapide des mots de passe (jamais utilisé en production)
+
+# --- E-mails ---------------------------------------------------------------------------
+# En local : affichés dans le terminal. En production : EMAIL_BACKEND=core.email_backend.BrevoEmailBackend
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+BREVO_API_KEY = env("BREVO_API_KEY", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Révisions Étudiants <ne-pas-repondre@exemple.cd>")
+PASSWORD_RESET_TIMEOUT = 60 * 60   # lien de réinitialisation valable 1 heure (3 jours par défaut)
 import sys
 
 if "test" in sys.argv:
