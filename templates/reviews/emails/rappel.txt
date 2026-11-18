@@ -1,0 +1,13 @@
+{% autoescape off %}Bonjour {{ user.first_name|default:user.username }},
+
+{{ total }} révision{{ total|pluralize }} t'attend{{ total|pluralize:"ent" }} aujourd'hui :
+{% for ligne in par_cours %}- {{ ligne.titre }} : {{ ligne.n }}
+{% endfor %}{% if autres_cours %}- et {{ autres_cours }} autre{{ autres_cours|pluralize }} cours
+{% endif %}
+Quelques minutes suffisent pour garder ta série : {{ lien_revisions }}
+
+Bonne révision !
+L'équipe Révisions Étudiants
+
+Ne plus recevoir ces rappels : {{ lien_desinscription }}
+{% endautoescape %}

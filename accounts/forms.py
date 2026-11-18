@@ -142,7 +142,7 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ("first_name", "last_name", "email", "university", "program")
+        fields = ("first_name", "last_name", "email", "university", "program", "daily_reminder")
 
     def clean_email(self):
         # On exclut l'utilisateur lui-même : garder son propre e-mail est permis.

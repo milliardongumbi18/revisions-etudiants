@@ -1468,3 +1468,28 @@
   from { opacity: 0; transform: scale(.85); }
   to   { opacity: 1; transform: scale(1); }
 }
+/* ==========================================================================
+   Ajouts étape 12e : case à cocher sur toute la largeur, libellé à droite
+   ========================================================================== */
+@layer components {
+  .field:has(> input[type="checkbox"]) {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .7rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .field:has(> input[type="checkbox"]) .label { margin: 0; cursor: pointer; }
+  .field > input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    flex-shrink: 0;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+}

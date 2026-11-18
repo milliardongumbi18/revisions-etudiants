@@ -72,6 +72,10 @@
             <dt>Filière / promotion</dt>
             <dd>{% if user.program %}{{ user.program }}{% else %}<span class="info-empty">Non renseignée</span>{% endif %}</dd>
           </div>
+                    <div class="info-item info-item-wide">
+            <dt>Rappels par e-mail</dt>
+            <dd>{% if user.daily_reminder %}Activés : un e-mail chaque matin quand des révisions t'attendent{% else %}<span class="info-empty">Désactivés</span>{% endif %}</dd>
+          </div>
         </dl>
       </div>
     </div>

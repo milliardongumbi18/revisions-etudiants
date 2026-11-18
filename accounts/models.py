@@ -24,7 +24,10 @@ class User(AbstractUser):
     university = models.CharField("université", max_length=150, blank=True)
     program = models.CharField("filière / promotion", max_length=150, blank=True)
     avatar = models.ImageField("photo de profil", upload_to=avatar_upload_path, blank=True)
-
+    daily_reminder = models.BooleanField(
+        "recevoir un rappel chaque matin quand des révisions m'attendent", default=False
+    )
+    last_reminder_sent = models.DateField("dernier rappel envoyé le", null=True, blank=True)
     class Meta:
         verbose_name = "utilisateur"
         verbose_name_plural = "utilisateurs"

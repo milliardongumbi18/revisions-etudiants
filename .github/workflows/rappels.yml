@@ -1,0 +1,29 @@
+# Chaque matin, GitHub démarre une machine, envoie les rappels, puis l'éteint.
+name: Rappels quotidiens
+
+on:
+  schedule:
+    - cron: "0 6 * * *"     # 6 h UTC = 7 h à Kinshasa (GitHub peut avoir quelques minutes de retard)
+  workflow_dispatch:         # bouton « Run workflow » pour tester à la main
+
+jobs:
+  rappels:
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}             # LA MÊME que sur Render (signe les liens de désinscription)
+      DEBUG: "False"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL_BACKEND: core.email_backend.BrevoEmailBackend
+      BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+      DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+      - name: Envoyer les rappels
+        run: python manage.py envoyer_rappels

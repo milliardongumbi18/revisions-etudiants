@@ -13,10 +13,13 @@ from django.contrib.auth.views import (
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.files.base import ContentFile
 from django.views.decorators.http import require_POST
-from django.shortcuts import redirect, render
+from django.core import signing
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 
 from core.demo import MESSAGE_DEMO, est_compte_demo
+from reviews.rappels import SEL_DESINSCRIPTION
 
 from .forms import (
     AvatarForm,
@@ -208,3 +211,24 @@ def avatar_delete(request):
         user.avatar.delete(save=True)
         messages.success(request, "Photo de profil retirée.")
     return redirect("accounts:profile")
+
+
+def reminders_unsubscribe(request, jeton):
+    """
+    Lien « Ne plus recevoir ces rappels » de l'e-mail : fonctionne sans être connecté (jeton signé).
+    Un GET n'affiche qu'une confirmation : les messageries « pré-ouvrent » parfois les liens.
+    """
+    try:
+        pk = signing.loads(jeton, salt=SEL_DESINSCRIPTION)
+    except signing.BadSignature:
+        raise Http404
+    user = get_object_or_404(User, pk=pk)
+
+    fait = False
+    if request.method == "POST":
+        User.objects.filter(pk=user.pk).update(daily_reminder=False)
+        fait = True
+
+    nom, _, domaine = user.email.partition("@")
+    email_masque = f"{nom[:1]}•••@{domaine}"   # on n'affiche pas l'adresse complète à qui détient le lien
+    return render(request, "accounts/reminders_unsubscribe.html", {"fait": fait, "email": email_masque})
