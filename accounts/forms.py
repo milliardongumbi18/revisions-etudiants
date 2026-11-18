@@ -146,3 +146,23 @@ class ProfileForm(StyledFormMixin, forms.ModelForm):
     def clean_email(self):
         # On exclut l'utilisateur lui-même : garder son propre e-mail est permis.
         return email_normalise_et_libre(self.cleaned_data["email"], exclude_pk=self.instance.pk)
+
+
+class DeleteAccountForm(StyledFormMixin, forms.Form):
+    """Suppression du compte : on redemande le mot de passe (une session volée ne suffit pas)."""
+
+    password = forms.CharField(
+        label="Mot de passe actuel",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        if not self.user.check_password(password):
+            raise forms.ValidationError("Mot de passe incorrect.")
+        return password
