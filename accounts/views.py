@@ -11,12 +11,15 @@ from django.contrib.auth.views import (
     PasswordResetView,
 )
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.files.base import ContentFile
+from django.views.decorators.http import require_POST
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
 from core.demo import MESSAGE_DEMO, est_compte_demo
 
 from .forms import (
+    AvatarForm,
     DeleteAccountForm,
     LoginForm,
     ProfileForm,
@@ -169,3 +172,39 @@ def delete_account(request):
         form = DeleteAccountForm(request.user)
 
     return render(request, "accounts/delete_account.html", {"form": form})
+
+
+@login_required
+@require_POST
+def avatar_update(request):
+    """Nouvelle photo : vérifiée et nettoyée, puis l'ancienne est supprimée du stockage."""
+    if est_compte_demo(request.user):
+        messages.info(request, MESSAGE_DEMO)
+        return redirect("accounts:profile")
+
+    form = AvatarForm(request.POST, request.FILES)
+    if form.is_valid():
+        user = User.objects.get(pk=request.user.pk)
+        ancienne = user.avatar.name
+        user.avatar.save("avatar.webp", ContentFile(form.contenu), save=True)
+        if ancienne:
+            user.avatar.storage.delete(ancienne)
+        messages.success(request, "Photo de profil mise à jour.")
+    else:
+        messages.error(request, form.errors["avatar"][0])
+    return redirect("accounts:profile")
+
+
+@login_required
+@require_POST
+def avatar_delete(request):
+    """Retire la photo : le fichier est supprimé du stockage, puis le champ est vidé."""
+    if est_compte_demo(request.user):
+        messages.info(request, MESSAGE_DEMO)
+        return redirect("accounts:profile")
+
+    user = User.objects.get(pk=request.user.pk)
+    if user.avatar:
+        user.avatar.delete(save=True)
+        messages.success(request, "Photo de profil retirée.")
+    return redirect("accounts:profile")

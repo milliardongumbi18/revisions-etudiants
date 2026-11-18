@@ -12,6 +12,7 @@ from django.contrib.auth.forms import (
 from django.core.cache import cache
 
 from core.demo import est_compte_demo
+from services.images import ImageInvalide, preparer_avatar
 from core.forms import StyledFormMixin
 
 from .models import User
@@ -166,3 +167,20 @@ class DeleteAccountForm(StyledFormMixin, forms.Form):
         if not self.user.check_password(password):
             raise forms.ValidationError("Mot de passe incorrect.")
         return password
+
+
+class AvatarForm(forms.Form):
+    """Photo de profil : la vraie vérification est faite par services/images.py."""
+
+    avatar = forms.FileField(
+        label="Photo de profil",
+        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+    def clean_avatar(self):
+        fichier = self.cleaned_data["avatar"]
+        try:
+            self.contenu = preparer_avatar(fichier)   # octets WebP prêts à enregistrer
+        except ImageInvalide as exc:
+            raise forms.ValidationError(str(exc))
+        return fichier

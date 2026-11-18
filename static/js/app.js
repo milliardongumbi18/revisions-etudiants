@@ -285,3 +285,19 @@
     });
   });
 })();
+/* ==========================================================================
+   Étape 12d : la photo de profil part dès qu'elle est choisie
+   ========================================================================== */
+(() => {
+  document.querySelectorAll("[data-avatar-input]").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.files.length) return;
+      const bouton = input.closest("label");
+      if (bouton) {
+        bouton.setAttribute("aria-busy", "true");
+        bouton.firstChild.textContent = "Envoi en cours… ";
+      }
+      input.form.requestSubmit();
+    });
+  });
+})();

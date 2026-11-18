@@ -14,6 +14,11 @@ from django.test import override_settings
 from courses.models import Course
 
 from core.demo import DEMO_EMAIL, DEMO_USERNAME
+from io import BytesIO
+
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 
 User = get_user_model()
 PASSWORD = "Kinshasa-Revise-2026!"
@@ -304,3 +309,84 @@ class DeleteAccountTests(TestCase):
         response = self.client.post(self.url, {"password": PASSWORD})
         self.assertRedirects(response, reverse("accounts:profile"))
         self.assertTrue(User.objects.filter(pk=demo.pk).exists())
+
+
+# Fichiers gardés en mémoire pendant les tests : rien sur le disque, rien sur Supabase
+STOCKAGE_MEMOIRE = {
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+
+def image_test(format="PNG", taille=(800, 600), exif=None):
+    tampon = BytesIO()
+    options = {"exif": exif} if exif else {}
+    Image.new("RGB", taille, (240, 138, 46)).save(tampon, format=format, **options)
+    return SimpleUploadedFile(f"photo.{format.lower()}", tampon.getvalue(), content_type=f"image/{format.lower()}")
+
+
+@override_settings(STORAGES=STOCKAGE_MEMOIRE)
+class AvatarTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        self.client.force_login(self.user)
+
+    def envoyer(self, fichier):
+        return self.client.post(reverse("accounts:avatar_update"), {"avatar": fichier})
+
+    def test_photo_recadree_convertie_et_nettoyee(self):
+        exif = Image.Exif()
+        exif[0x010F] = "Appareil secret"   # 0x010F = marque de l'appareil photo
+        response = self.envoyer(image_test("JPEG", (1200, 800), exif=exif.tobytes()))
+        self.assertRedirects(response, reverse("accounts:profile"))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.avatar.name.endswith(".webp"))
+        with self.user.avatar.open("rb") as fichier:
+            image = Image.open(fichier)
+            image.load()
+        self.assertEqual(image.format, "WEBP")
+        self.assertEqual(image.size, (400, 400))
+        self.assertNotIn(0x010F, image.getexif())   # métadonnées supprimées
+
+    def test_fichier_qui_n_est_pas_une_image_refuse(self):
+        self.envoyer(SimpleUploadedFile("photo.png", b"pas une image", content_type="image/png"))
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_format_non_accepte_refuse(self):
+        self.envoyer(image_test("GIF"))
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_image_trop_lourde_refusee(self):
+        self.envoyer(SimpleUploadedFile("photo.png", b"0" * (5 * 1024 * 1024 + 1), content_type="image/png"))
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+
+    def test_nouvelle_photo_remplace_et_supprime_l_ancienne(self):
+        self.envoyer(image_test())
+        self.user.refresh_from_db()
+        ancienne = self.user.avatar.name
+        self.envoyer(image_test())
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.avatar.name, ancienne)
+        self.assertFalse(default_storage.exists(ancienne))
+
+    def test_retirer_la_photo(self):
+        self.envoyer(image_test())
+        self.user.refresh_from_db()
+        nom = self.user.avatar.name
+        self.client.post(reverse("accounts:avatar_delete"))
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar)
+        self.assertFalse(default_storage.exists(nom))
+
+    def test_envoi_uniquement_en_post(self):
+        self.assertEqual(self.client.get(reverse("accounts:avatar_update")).status_code, 405)
+
+    def test_compte_demo_ne_peut_pas_changer_de_photo(self):
+        demo = User.objects.create_user(DEMO_USERNAME, email=DEMO_EMAIL, password=PASSWORD)
+        self.client.force_login(demo)
+        self.envoyer(image_test())
+        demo.refresh_from_db()
+        self.assertFalse(demo.avatar)

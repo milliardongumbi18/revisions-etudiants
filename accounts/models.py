@@ -1,6 +1,15 @@
+from uuid import uuid4
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.functions import Lower
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+
+def avatar_upload_path(instance, filename):
+    """Nom généré par NOUS : impossible à deviner, aucune collision, toujours en .webp."""
+    return f"avatars/{instance.pk}/{uuid4().hex}.webp"
 
 
 class User(AbstractUser):
@@ -14,6 +23,7 @@ class User(AbstractUser):
     email = models.EmailField("adresse e-mail")  # obligatoire (blank=False par défaut)
     university = models.CharField("université", max_length=150, blank=True)
     program = models.CharField("filière / promotion", max_length=150, blank=True)
+    avatar = models.ImageField("photo de profil", upload_to=avatar_upload_path, blank=True)
 
     class Meta:
         verbose_name = "utilisateur"
@@ -36,3 +46,10 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+@receiver(post_delete, sender=User)
+def supprimer_la_photo_du_compte(sender, instance, **kwargs):
+    """Compte supprimé → sa photo est retirée du stockage (pas de fichier orphelin)."""
+    if instance.avatar:
+        instance.avatar.delete(save=False)
