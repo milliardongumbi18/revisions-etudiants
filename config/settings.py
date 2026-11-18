@@ -175,6 +175,13 @@ if STORAGE_BUCKET:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Images : notre site + (en production) le stockage Supabase qui sert les photos de profil
+IMG_SRC = [CSP.SELF, "data:"]
+if STORAGE_BUCKET:
+    from urllib.parse import urlsplit
+
+    _stockage = urlsplit(env("STORAGE_ENDPOINT"))
+    IMG_SRC.append(f"{_stockage.scheme}://{_stockage.netloc}")
 # --- Content Security Policy : le navigateur n'exécute que ce que l'on autorise ici ----
 SECURE_CSP = {
     "default-src": [CSP.SELF],
@@ -184,7 +191,7 @@ SECURE_CSP = {
     # Pas de nonce ici : sa présence ferait ignorer 'unsafe-inline' par le navigateur.
     "style-src": [CSP.SELF, CSP.UNSAFE_INLINE, "https://fonts.googleapis.com"],
     "font-src": [CSP.SELF, "https://fonts.gstatic.com"],
-    "img-src": [CSP.SELF, "data:"],
+    "img-src": IMG_SRC,
     "connect-src": [CSP.SELF],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.SELF],          # empêche de détourner les liens relatifs avec <base>

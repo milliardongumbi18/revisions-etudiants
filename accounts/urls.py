@@ -11,6 +11,8 @@ urlpatterns = [
     path("profil/", views.profile, name="profile"),
     path("profil/modifier/", views.profile_edit, name="profile_edit"),
     path("supprimer/", views.delete_account, name="delete_account"),
+        path("photo/", views.avatar_update, name="avatar_update"),
+    path("photo/retirer/", views.avatar_delete, name="avatar_delete"),
     path("mot-de-passe/", views.ChangePasswordView.as_view(), name="password_change"),
     # Mot de passe oublié
     path("mot-de-passe-oublie/", views.ResetPasswordView.as_view(), name="password_reset"),

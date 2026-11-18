@@ -1440,3 +1440,31 @@
   }
   .danger-list li::marker { color: var(--danger); }
 }
+/* ==========================================================================
+   Ajouts étape 12d : photo de profil
+   ========================================================================== */
+@layer components {
+  .avatar-photo {
+    display: block;
+    object-fit: cover;
+    outline: 3px solid var(--surface);
+    animation: pop-in .5s var(--ease-spring);
+  }
+  .avatar-pick { cursor: pointer; }
+  .avatar-pick:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }   /* navigation au clavier */
+  .avatar-pick[aria-busy="true"] { opacity: .6; pointer-events: none; }
+  .avatar-remove {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: transparent;
+    transition: color .2s, text-decoration-color .2s;
+  }
+  .avatar-remove:hover { color: var(--danger); text-decoration-color: currentColor; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
