@@ -1,0 +1,19 @@
+{% extends "accounts/auth_base.html" %}
+
+{% block title %}Rappels par e-mail · Révisions Étudiants{% endblock %}
+
+{% block auth_content %}
+  {% if fait %}
+    <p class="eyebrow">C'est fait</p>
+    <h1 class="mt-2 text-3xl font-extrabold">Rappels désactivés ✅</h1>
+    <p class="text-muted mt-2">Tu ne recevras plus de rappels à l'adresse {{ email }}. Tu peux les réactiver à tout moment dans ton profil.</p>
+  {% else %}
+    <p class="eyebrow">Rappels par e-mail</p>
+    <h1 class="mt-2 text-3xl font-extrabold">Ne plus recevoir les rappels ?</h1>
+    <p class="text-muted mt-2">Les rappels quotidiens envoyés à {{ email }} seront désactivés.</p>
+    <form method="post" class="mt-8">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary w-full">Oui, désactiver les rappels</button>
+    </form>
+  {% endif %}
+{% endblock %}

@@ -228,6 +228,8 @@ EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.
 BREVO_API_KEY = env("BREVO_API_KEY", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Révisions Étudiants <ne-pas-repondre@exemple.cd>")
 PASSWORD_RESET_TIMEOUT = 60 * 60   # lien de réinitialisation valable 1 heure (3 jours par défaut)
+# Adresse publique du site : sert à construire les liens des e-mails envoyés hors requête (rappels)
+SITE_URL = env("SITE_URL", default="http://127.0.0.1:8000").rstrip("/")
 import sys
 
 if "test" in sys.argv:
