@@ -1422,3 +1422,21 @@
   }
   .info-empty { color: var(--muted); font-weight: 500; font-style: italic; }
 }
+/* ==========================================================================
+   Ajouts étape 12c : suppression du compte
+   ========================================================================== */
+@layer components {
+  .danger-zone {
+    border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+    background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+  }
+  .eyebrow-danger { color: var(--danger); }
+  .danger-list {
+    display: grid;
+    gap: .4rem;
+    padding-left: 1.2rem;
+    list-style: disc;
+    color: var(--muted);
+  }
+  .danger-list li::marker { color: var(--danger); }
+}

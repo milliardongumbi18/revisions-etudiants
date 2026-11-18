@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import (
     LoginView,
@@ -17,6 +17,7 @@ from django.urls import reverse_lazy
 from core.demo import MESSAGE_DEMO, est_compte_demo
 
 from .forms import (
+    DeleteAccountForm,
     LoginForm,
     ProfileForm,
     SignUpForm,
@@ -147,3 +148,24 @@ def profile_edit(request):
         form = ProfileForm(instance=instance)
 
     return render(request, "accounts/profile_edit.html", {"form": form})
+
+
+@login_required
+def delete_account(request):
+    """Suppression définitive du compte et de TOUTES ses données, après confirmation du mot de passe."""
+    if est_compte_demo(request.user):
+        messages.info(request, MESSAGE_DEMO)
+        return redirect("accounts:profile")
+
+    if request.method == "POST":
+        form = DeleteAccountForm(request.user, request.POST)
+        if form.is_valid():
+            user = request.user
+            logout(request)   # d'abord fermer la session...
+            user.delete()     # ...puis tout supprimer en cascade (cours, quiz, révisions, planning, fichiers)
+            messages.success(request, "Ton compte et toutes tes données ont été supprimés. À bientôt !")
+            return redirect("core:home")
+    else:
+        form = DeleteAccountForm(request.user)
+
+    return render(request, "accounts/delete_account.html", {"form": form})

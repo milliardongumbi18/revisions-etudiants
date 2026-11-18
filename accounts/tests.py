@@ -11,6 +11,7 @@ from unittest import mock
 from django.core import mail
 from django.core.mail import send_mail
 from django.test import override_settings
+from courses.models import Course
 
 from core.demo import DEMO_EMAIL, DEMO_USERNAME
 
@@ -270,3 +271,36 @@ class BrevoBackendTests(TestCase):
         self.assertEqual(corps["sender"], {"name": "Révisions Étudiants", "email": "envoi@exemple.cd"})
         self.assertEqual(corps["to"], [{"email": "awa@exemple.cd"}])
         self.assertEqual(corps["subject"], "Sujet")
+
+
+class DeleteAccountTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("awa", email="awa@exemple.cd", password=PASSWORD)
+        Course.objects.create(owner=self.user, title="Algorithmique")
+        self.url = reverse("accounts:delete_account")
+
+    def test_exige_une_connexion(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_mauvais_mot_de_passe_ne_supprime_rien(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"password": "faux"})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "password", "Mot de passe incorrect.")
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_bon_mot_de_passe_supprime_le_compte_et_ses_donnees(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, {"password": PASSWORD})
+        self.assertRedirects(response, reverse("core:home"))
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertFalse(Course.objects.filter(title="Algorithmique").exists())   # supprimé en cascade
+        self.assertNotIn("_auth_user_id", self.client.session)                  # déconnecté
+
+    def test_compte_demo_ne_peut_pas_etre_supprime(self):
+        demo = User.objects.create_user(DEMO_USERNAME, email=DEMO_EMAIL, password=PASSWORD)
+        self.client.force_login(demo)
+        response = self.client.post(self.url, {"password": PASSWORD})
+        self.assertRedirects(response, reverse("accounts:profile"))
+        self.assertTrue(User.objects.filter(pk=demo.pk).exists())
