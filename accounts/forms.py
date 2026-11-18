@@ -1,16 +1,32 @@
 import hashlib
+import logging
 
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.core.cache import cache
 
+from core.demo import est_compte_demo
 from core.forms import StyledFormMixin
 
 from .models import User
 
+logger = logging.getLogger(__name__)
+
 EMAIL_DEJA_UTILISE = "Un compte utilise déjà cette adresse e-mail."
 MAX_ECHECS_CONNEXION = 5
-DUREE_BLOCAGE = 15 * 60   # secondes
+DUREE_BLOCAGE = 15 * 60          # secondes
+DELAI_ENTRE_EMAILS = 5 * 60      # au plus un e-mail de réinitialisation par adresse toutes les 5 minutes
+
+
+def cle_cache(prefixe, valeur):
+    """Clé de cache hachée : jamais la donnée en clair, aucun caractère problématique."""
+    return prefixe + hashlib.sha256(valeur.strip().lower().encode("utf-8")).hexdigest()
 
 
 def email_normalise_et_libre(email, exclude_pk=None):
@@ -57,8 +73,7 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
 
     def clean(self):
         nom = (self.cleaned_data.get("username") or "").strip().lower()
-        # Clé de cache hachée : jamais le nom en clair, et aucun caractère problématique
-        cle = "echecs-connexion:" + hashlib.sha256(nom.encode("utf-8")).hexdigest()
+        cle = cle_cache("echecs-connexion:", nom)
 
         if nom and cache.get(cle, 0) >= MAX_ECHECS_CONNEXION:
             raise forms.ValidationError(self.error_messages["trop_de_tentatives"], code="trop_de_tentatives")
@@ -80,6 +95,34 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
 
 class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
     """Changement de mot de passe : logique de Django (vérifie l'ancien, valide le nouveau)."""
+
+
+class StyledPasswordResetForm(StyledFormMixin, PasswordResetForm):
+    """
+    « Mot de passe oublié » : Django retrouve le compte par e-mail et envoie un lien signé.
+    Même page de confirmation que l'adresse existe ou non (aucune fuite d'information).
+    """
+
+    def get_users(self, email):
+        # Jamais d'e-mail pour le compte de démonstration (adresse fictive, mot de passe public)
+        return (user for user in super().get_users(email) if not est_compte_demo(user))
+
+    def save(self, *args, **kwargs):
+        # Anti-abus : au plus un e-mail par adresse toutes les 5 minutes (protège aussi le quota Brevo)
+        if not cache.add(cle_cache("reinit-mdp:", self.cleaned_data["email"]), 1, DELAI_ENTRE_EMAILS):
+            return
+        super().save(*args, **kwargs)
+
+    def send_mail(self, *args, **kwargs):
+        # Un souci chez le fournisseur ne doit pas afficher une erreur 500 à l'étudiant
+        try:
+            super().send_mail(*args, **kwargs)
+        except Exception:
+            logger.exception("E-mail de réinitialisation non envoyé")
+
+
+class StyledSetPasswordForm(StyledFormMixin, SetPasswordForm):
+    """Choix du nouveau mot de passe (validé par les règles de AUTH_PASSWORD_VALIDATORS)."""
 
 
 class ProfileForm(StyledFormMixin, forms.ModelForm):
