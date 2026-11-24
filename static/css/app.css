@@ -1506,3 +1506,70 @@
   }
   .explain summary:hover { color: var(--brand-hover); }
 }
+/* ==========================================================================
+   Ajouts étape 13b : statistiques de progression
+   ========================================================================== */
+@layer components {
+  .prog-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+  }
+  @media (min-width: 768px) {
+    .prog-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .prog-tile {
+    display: grid;
+    gap: .15rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  .prog-value {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--course, var(--brand));
+  }
+  .prog-label { font-size: .8rem; color: var(--muted); }
+
+  .prog-chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .prog-grid { stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 5 6; }
+  .prog-axis { fill: var(--muted); font-size: 14px; font-family: var(--font-body); }
+  .prog-line {
+    fill: none;
+    stroke: var(--course, var(--brand));
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: prog-draw 1.4s var(--ease-out) .2s forwards;   /* la courbe se dessine */
+  }
+  .prog-dot {
+    fill: var(--surface);
+    stroke: var(--course, var(--brand));
+    stroke-width: 3.5;
+    transition: r .2s;
+  }
+  .prog-dot:hover { r: 9; }
+
+  .chapter-stat {
+    display: grid;
+    gap: .45rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .chapter-stat:hover {
+    border-color: color-mix(in srgb, var(--course, var(--brand)) 50%, var(--border));
+    box-shadow: var(--shadow);
+  }
+}
+@keyframes prog-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .prog-line { animation: none; stroke-dashoffset: 0; }
+}

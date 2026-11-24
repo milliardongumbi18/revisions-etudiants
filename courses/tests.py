@@ -6,6 +6,8 @@ from django.urls import reverse
 from services.tests import make_pdf, make_pdf_with_bookmarks
 
 from .models import Chapter, Course
+from quizzes.models import Question, Quiz
+from reviews.models import ReviewCard, ReviewLog
 
 User = get_user_model()
 
@@ -143,3 +145,33 @@ class DictationTests(CourseTestCase):
     def test_formulaire_chapitre_propose_la_dictee_sur_les_notes(self):
         response = self.client.get(reverse("courses:chapter_create", args=[self.course_awa.pk]))
         self.assertContains(response, 'data-dictation="id_notes"')
+
+
+class ProgressionTests(CourseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.chapitre = Chapter.objects.create(course=self.course_awa, title="Les contrats", notes="Notes", order=1)
+        quiz = Quiz.objects.create(chapter=self.chapitre)
+        questions = [
+            Question.objects.create(quiz=quiz, kind="courte", text=f"Question {n} ?", expected_answer="R", order=n)
+            for n in (1, 2)
+        ]
+        # 1 carte maîtrisée sur 2 (50 %), 3 bonnes réponses sur 4 (75 %)
+        carte = ReviewCard.objects.create(owner=self.awa, question=questions[0], interval=30, review_count=4, correct_count=3)
+        ReviewCard.objects.create(owner=self.awa, question=questions[1])
+        ReviewLog.objects.create(owner=self.awa, card=carte, grade=4, correct=True)
+
+    def test_page_du_cours_affiche_la_progression_par_chapitre(self):
+        response = self.client.get(reverse("courses:detail", args=[self.course_awa.pk]))
+        self.assertContains(response, "Progression")
+        self.assertContains(response, "50 % maîtrisé")
+        self.assertContains(response, "75 % de réussite")
+
+    def test_page_du_chapitre_affiche_la_courbe(self):
+        response = self.client.get(reverse("courses:chapter_detail", args=[self.chapitre.pk]))
+        self.assertContains(response, "<polyline")
+
+    def test_chapitre_sans_quiz_l_indique(self):
+        Chapter.objects.create(course=self.course_awa, title="Les successions", notes="Notes", order=2)
+        response = self.client.get(reverse("courses:detail", args=[self.course_awa.pk]))
+        self.assertContains(response, "Pas encore de quiz")

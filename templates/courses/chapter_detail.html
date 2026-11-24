@@ -30,8 +30,8 @@
           <button type="submit" class="btn btn-primary btn-sm">✨ Générer un quiz</button>
         </form>
       </div>
+      <p class="help mt-2">La génération prend quelques secondes.</p>
 
-           <p class="help mt-2">La génération prend quelques secondes.</p>
       {# linebreaks : le texte est d'abord ÉCHAPPÉ, puis les retours à la ligne deviennent des paragraphes #}
       <div class="prose-notes mt-8">{{ chapter.notes|linebreaks }}</div>
     </article>
@@ -42,7 +42,7 @@
           <h2 class="text-xl font-bold">Quiz de ce chapitre</h2>
           <ul class="quiz-list mt-4">
             {% for quiz in quizzes %}
-              <li>
+              <li class="min-w-0">
                 <a href="{{ quiz.get_absolute_url }}" class="chapter-item">
                   <span class="chapter-num">✨</span>
                   <span class="min-w-0 flex-1">
@@ -58,23 +58,25 @@
       {% endif %}
     {% endwith %}
 
-    <nav class="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Navigation entre chapitres">
+    {% include "partials/_progression.html" with prog=progression %}
+
+    <nav class="mt-10 grid gap-3 sm:grid-cols-2" aria-label="Navigation entre chapitres">
       {% if previous %}
-        <a href="{{ previous.get_absolute_url }}" class="chapter-item">
+        <a href="{{ previous.get_absolute_url }}" class="chapter-item min-w-0">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
           <span class="min-w-0">
             <span class="text-muted block text-xs">Précédent</span>
-            <span class="block truncate font-semibold">{{ previous.title }}</span>
+            <span class="line-clamp-2 break-words font-semibold">{{ previous.title }}</span>
           </span>
         </a>
       {% else %}
         <span class="hidden sm:block"></span>
       {% endif %}
       {% if next %}
-        <a href="{{ next.get_absolute_url }}" class="chapter-item justify-end text-right">
+        <a href="{{ next.get_absolute_url }}" class="chapter-item min-w-0 justify-end text-right">
           <span class="min-w-0">
             <span class="text-muted block text-xs">Suivant</span>
-            <span class="block truncate font-semibold">{{ next.title }}</span>
+            <span class="line-clamp-2 break-words font-semibold">{{ next.title }}</span>
           </span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </a>
