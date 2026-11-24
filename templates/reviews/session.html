@@ -43,16 +43,17 @@
         {% endif %}
 
       {% else %}
-        {# ===== 2. La correction ===== #}
+        {# ===== 2. La correction (QCM raté ou question courte) ===== #}
         {% if question.kind == "qcm" %}
-          <div class="feedback {% if pending.correct %}is-ok{% else %}is-ko{% endif %} mt-5" role="status">
-            {% if pending.correct %}✓ Bonne réponse !{% else %}✗ Pas tout à fait…{% endif %}
-          </div>
+          <div class="feedback is-ko mt-5" role="status">✗ Pas tout à fait…</div>
           <ol class="choices mt-4">
             {% for choix in question.choices %}
               <li class="option{% if forloop.counter0 == question.correct_index %} is-correct{% elif forloop.counter0 == pending.choice %} is-wrong{% endif %}">{{ choix }}</li>
             {% endfor %}
           </ol>
+          {% if question.explanation %}
+            <p class="text-muted mt-4">{{ question.explanation }}</p>
+          {% endif %}
         {% else %}
           <div class="answer-compare mt-5">
             <div>
@@ -64,25 +65,25 @@
               <p class="mt-1">{{ question.expected_answer }}</p>
             </div>
           </div>
-        {% endif %}
-
-        {% if question.explanation %}
-          <p class="text-muted mt-4">{{ question.explanation }}</p>
+          {% if question.explanation %}
+            <details class="explain mt-4">
+              <summary>Voir l'explication</summary>
+              <p class="text-muted mt-2">{{ question.explanation }}</p>
+            </details>
+          {% endif %}
         {% endif %}
 
         {# ===== 3. La note (SM-2) ===== #}
         <form method="post" action="{% url 'reviews:grade' %}" class="mt-6">
           {% csrf_token %}
-          {% if question.kind == "qcm" and not pending.correct %}
+          {% if question.kind == "qcm" %}
             <button type="submit" name="grade" value="1" class="btn btn-primary w-full">
               Continuer · cette question reviendra demain
             </button>
           {% else %}
-            <p class="label">{% if question.kind == "qcm" %}C'était comment ?{% else %}Compare, puis sois honnête :{% endif %}</p>
+            <p class="label">Compare, puis sois honnête :</p>
             <div class="grade-grid mt-3">
-              {% if question.kind == "courte" %}
-                <button type="submit" name="grade" value="1" class="grade-btn" data-grade="1">Raté<small>demain</small></button>
-              {% endif %}
+              <button type="submit" name="grade" value="1" class="grade-btn" data-grade="1">Raté<small>demain</small></button>
               {% for note, libelle, delai in boutons %}
                 <button type="submit" name="grade" value="{{ note }}" class="grade-btn" data-grade="{{ note }}">{{ libelle }}<small>{{ delai }}</small></button>
               {% endfor %}
