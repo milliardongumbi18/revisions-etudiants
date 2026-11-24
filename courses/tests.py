@@ -8,6 +8,7 @@ from services.tests import make_pdf, make_pdf_with_bookmarks
 from .models import Chapter, Course
 from quizzes.models import Question, Quiz
 from reviews.models import ReviewCard, ReviewLog
+from django.core.cache import cache
 
 User = get_user_model()
 
@@ -175,3 +176,25 @@ class ProgressionTests(CourseTestCase):
         Chapter.objects.create(course=self.course_awa, title="Les successions", notes="Notes", order=2)
         response = self.client.get(reverse("courses:detail", args=[self.course_awa.pk]))
         self.assertContains(response, "Pas encore de quiz")
+
+
+@override_settings(AI_PROVIDER="fake")
+class FormatNotesTests(CourseTestCase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()   # remet à zéro le délai entre deux mises en forme
+        self.url = reverse("courses:format_notes")
+
+    def test_met_en_forme_et_repond_en_json(self):
+        response = self.client.post(self.url, {"texte": "euh je je je deviendrai médecin plus tard"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Introduction", response.json()["texte"])
+
+    def test_texte_trop_court_refuse(self):
+        response = self.client.post(self.url, {"texte": "  euh  "})
+        self.assertEqual(response.status_code, 400)
+
+    def test_une_mise_en_forme_toutes_les_10_secondes(self):
+        texte = {"texte": "un texte dicté assez long pour être mis en forme"}
+        self.client.post(self.url, texte)
+        self.assertEqual(self.client.post(self.url, texte).status_code, 429)

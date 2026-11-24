@@ -112,6 +112,9 @@ class FakeProvider(AIProvider):
     label = "Démo (sans IA)"
 
     def generate_json(self, prompt, schema):
+        if "texte" in schema.get("properties", {}):   # mise en forme de notes
+            return {"texte": "Introduction\n\nTexte de démonstration mis en forme."}
+
         qcm = [
             {
                 "type": "qcm",
