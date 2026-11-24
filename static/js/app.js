@@ -198,6 +198,11 @@
       .replace(/\s*point d'interrogation/gi, " ?")
       .replace(/\s*point d'exclamation/gi, " !")
       .replace(/\s*virgule/gi, ",");
+  
+  // « je je je deviendrai » → « je deviendrai » (sauf « nous nous » et « vous vous », qui sont corrects)
+  const sansRepetitions = (texte) =>
+    texte.replace(/(^|\s)([\p{L}\p{N}'’-]+)(?:\s+\2)+(?=[\s.,;:!?]|$)/giu,
+      (tout, debut, mot) => (/^(nous|vous)$/i.test(mot) ? tout : debut + mot));
 
   document.querySelectorAll("[data-dictation]").forEach((barre) => {
     const zone = document.getElementById(barre.dataset.dictation);
@@ -241,7 +246,7 @@
       let apercu = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const resultat = event.results[i];
-        if (resultat.isFinal) inserer(ponctuer(resultat[0].transcript));
+                if (resultat.isFinal) inserer(sansRepetitions(ponctuer(resultat[0].transcript)));
         else apercu += resultat[0].transcript;
       }
       statut.textContent = apercu ? `… ${apercu}` : "Je t'écoute…";
@@ -298,6 +303,60 @@
         bouton.firstChild.textContent = "Envoi en cours… ";
       }
       input.form.requestSubmit();
+    });
+  });
+})();
+
+/* ==========================================================================
+   Étape 13c : mise en forme des notes par l'IA (sans recharger la page)
+   ========================================================================== */
+(() => {
+  document.querySelectorAll("[data-format-notes]").forEach((barre) => {
+    const zone = document.getElementById(barre.dataset.formatNotes);
+    const bouton = barre.querySelector("[data-format-btn]");
+    const annuler = barre.querySelector("[data-format-undo]");
+    const statut = barre.querySelector("[data-format-status]");
+    const jeton = zone?.form?.querySelector("input[name=csrfmiddlewaretoken]");
+    if (!zone || !bouton || !jeton) return;
+
+    let texteAvant = "";
+
+    bouton.addEventListener("click", async () => {
+      const texte = zone.value.trim();
+      if (texte.length < 20) {
+        statut.textContent = "Écris ou dicte d'abord quelques phrases.";
+        return;
+      }
+      bouton.disabled = true;
+      bouton.setAttribute("aria-busy", "true");
+      statut.textContent = "Mise en forme en cours…";
+
+      const donnees = new FormData();
+      donnees.append("csrfmiddlewaretoken", jeton.value);   // protection CSRF, comme un formulaire
+      donnees.append("texte", texte);
+
+      try {
+        const reponse = await fetch(barre.dataset.url, { method: "POST", body: donnees, credentials: "same-origin" });
+        const json = (reponse.headers.get("content-type") || "").includes("json") ? await reponse.json() : null;
+        if (!json) throw new Error("Session expirée : reconnecte-toi.");
+        if (!reponse.ok) throw new Error(json.erreur || "La mise en forme a échoué.");
+
+        texteAvant = zone.value;
+        zone.value = json.texte;
+        annuler.hidden = false;
+        statut.textContent = "Texte mis en forme ✓ Relis-le avant d'enregistrer.";
+      } catch (erreur) {
+        statut.textContent = erreur.message || "Impossible de joindre le serveur. Réessaie.";
+      } finally {
+        bouton.disabled = false;
+        bouton.removeAttribute("aria-busy");
+      }
+    });
+
+    annuler.addEventListener("click", () => {
+      zone.value = texteAvant;
+      annuler.hidden = true;
+      statut.textContent = "Texte d'origine rétabli.";
     });
   });
 })();

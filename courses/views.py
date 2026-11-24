@@ -5,7 +5,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import Count, Max
-from django.http import Http404
+from django.core.cache import cache
+from django.http import Http404, JsonResponse
+from django.views import View
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
@@ -13,6 +15,8 @@ from django.views.generic import CreateView, DeleteView, DetailView, FormView, L
 from .forms import ChapterForm, CourseForm, CourseImportForm
 from .models import Chapter, Course
 from reviews.stats import progression_chapitre, progression_cours
+from services.ai_provider import AIError
+from services.text_formatter import MAX_CHARS, MIN_CHARS, mettre_en_forme
 
 
 # ---------------------------------------------------------------------------
@@ -202,3 +206,26 @@ class ChapterFileView(OwnedChapterMixin, DetailView):
         if not chapter.source_file:
             raise Http404("Ce chapitre n'a pas de fichier.")
         return redirect(chapter.source_file.url)
+
+
+DELAI_MISE_EN_FORME = 10   # secondes entre deux mises en forme (protège le quota d'IA)
+
+
+class FormatNotesView(LoginRequiredMixin, View):
+    """Met en forme des notes dictées ou tapées. Appelée en JavaScript : répond en JSON."""
+
+    http_method_names = ["post"]
+
+    def post(self, request):
+        texte = request.POST.get("texte", "").strip()
+        if len(texte) < MIN_CHARS:
+            return JsonResponse({"erreur": "Écris ou dicte d'abord quelques phrases."}, status=400)
+        if len(texte) > MAX_CHARS:
+            return JsonResponse({"erreur": "Texte trop long pour une mise en forme (20 000 caractères maximum)."}, status=400)
+        if not cache.add(f"mise-en-forme:{request.user.pk}", 1, DELAI_MISE_EN_FORME):
+            return JsonResponse({"erreur": "Patiente quelques secondes avant une nouvelle mise en forme."}, status=429)
+
+        try:
+            return JsonResponse({"texte": mettre_en_forme(texte)})
+        except AIError as erreur:
+            return JsonResponse({"erreur": str(erreur)}, status=503)

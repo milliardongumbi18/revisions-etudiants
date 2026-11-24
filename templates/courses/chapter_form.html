@@ -54,6 +54,15 @@
         </div>
 
         {% include "partials/_field.html" with field=form.notes %}
+      
+        <div class="format-bar" data-format-notes="{{ form.notes.id_for_label }}" data-url="{% url 'courses:format_notes' %}">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn btn-ghost btn-sm" data-format-btn>✨ Mettre en forme</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-format-undo hidden>Annuler la mise en forme</button>
+            <span class="dictation-status" data-format-status aria-live="polite"></span>
+          </div>
+          <p class="help mt-2">Supprime les hésitations, corrige la ponctuation et organise le texte (introduction, parties, conclusion). Relis toujours le résultat.</p>
+        </div>
 
         <div class="mt-2 flex justify-end gap-3">
           <a href="{% if object %}{{ object.get_absolute_url }}{% else %}{{ course.get_absolute_url }}{% endif %}" class="btn btn-ghost">Annuler</a>

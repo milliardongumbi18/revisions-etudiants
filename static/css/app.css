@@ -1573,3 +1573,16 @@
 @media (prefers-reduced-motion: reduce) {
   .prog-line { animation: none; stroke-dashoffset: 0; }
 }
+/* ==========================================================================
+   Ajouts étape 13c : barre de mise en forme des notes
+   ========================================================================== */
+@layer components {
+  .format-bar {
+    margin-top: -.5rem;
+    padding: .85rem 1rem;
+    border: 1px dashed color-mix(in srgb, var(--course, var(--brand)) 40%, var(--border));
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--course, var(--brand)) 5%, var(--surface));
+  }
+  .format-bar [aria-busy="true"] { opacity: .6; cursor: progress; }
+}
