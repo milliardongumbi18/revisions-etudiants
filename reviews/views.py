@@ -18,10 +18,25 @@ from .session import (
 
 NOTES_AUTORISEES = {1, 3, 4, 5}                                   # 1 = raté, 3 = difficile, 4 = bien, 5 = facile
 BOUTONS_REUSSITE = [(3, "Difficile"), (4, "Bien"), (5, "Facile")]
+NOTE_QCM_REUSSI = 4                                               # QCM juste : « Bien », sans écran de correction
 
 
 def libelle_delai(jours):
     return "demain" if jours <= 1 else f"dans {jours} j"
+
+
+def enregistrer_note(request, data, card, note):
+    """Applique SM-2, enregistre l'historique et passe à la question suivante."""
+    reussi = note >= 3
+    card.apply(review(card.state, note), reussi)
+    card.save()
+    ReviewLog.objects.create(owner=request.user, card=card, grade=note, correct=reussi)
+
+    data["queue"].pop(0)
+    data["done"] += 1
+    data["correct"] += int(reussi)
+    data["pending"] = None
+    save_session(request, data)
 
 
 class ReviewHomeView(LoginRequiredMixin, TemplateView):
@@ -123,7 +138,10 @@ class ReviewSessionView(LoginRequiredMixin, View):
 
 
 class AnswerView(LoginRequiredMixin, View):
-    """Enregistre la réponse (sans encore noter) puis réaffiche la page avec la correction."""
+    """
+    QCM juste : noté tout de suite, on passe à la question suivante.
+    QCM faux ou question courte : on garde la réponse et on affiche la correction.
+    """
 
     http_method_names = ["post"]
 
@@ -142,7 +160,13 @@ class AnswerView(LoginRequiredMixin, View):
             if not 0 <= choix < len(question.choices):
                 messages.error(request, "Choisis une réponse avant de valider.")
                 return redirect("reviews:session")
-            data["pending"] = {"card": card.pk, "choice": choix, "correct": choix == question.correct_index, "answer": ""}
+
+            if choix == question.correct_index:
+                enregistrer_note(request, data, card, NOTE_QCM_REUSSI)
+                messages.success(request, "✓ Bonne réponse !")
+                return redirect("reviews:session")
+
+            data["pending"] = {"card": card.pk, "choice": choix, "correct": False, "answer": ""}
         else:
             reponse = request.POST.get("answer", "").strip()[:1000]
             data["pending"] = {"card": card.pk, "choice": None, "correct": None, "answer": reponse}
@@ -152,7 +176,7 @@ class AnswerView(LoginRequiredMixin, View):
 
 
 class GradeView(LoginRequiredMixin, View):
-    """Applique SM-2 avec la note choisie, enregistre l'historique, passe à la question suivante."""
+    """Note choisie après la correction : SM-2, historique, question suivante."""
 
     http_method_names = ["post"]
 
@@ -172,15 +196,6 @@ class GradeView(LoginRequiredMixin, View):
 
         if pending["correct"] is False:   # QCM raté : retour demain, quoi que l'on clique
             note = 1
-        reussi = note >= 3
 
-        card.apply(review(card.state, note), reussi)
-        card.save()
-        ReviewLog.objects.create(owner=request.user, card=card, grade=note, correct=reussi)
-
-        data["queue"].pop(0)
-        data["done"] += 1
-        data["correct"] += int(reussi)
-        data["pending"] = None
-        save_session(request, data)
+        enregistrer_note(request, data, card, note)
         return redirect("reviews:session")

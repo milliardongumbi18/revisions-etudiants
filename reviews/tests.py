@@ -63,6 +63,29 @@ class ReviewFlowTests(TestCase):
         self.q_bob = Question.objects.create(quiz=self.quiz_bob, kind="courte", text="?", expected_answer="!", order=1)
 
         self.client.force_login(self.awa)
+        
+    def test_qcm_reussi_passe_directement_a_la_question_suivante(self):
+        self.demarrer()
+        self.client.post(reverse("reviews:answer"), {"choice": 2})   # bonne réponse
+        log = ReviewLog.objects.get()
+        self.assertEqual((log.grade, log.correct), (4, True))
+        response = self.client.get(reverse("reviews:session"))
+        self.assertContains(response, "Quel fleuve traverse la capitale ?")   # déjà la question 2
+
+    def test_explication_affichee_apres_une_erreur(self):
+        self.q1.explanation = "Kinshasa est la capitale de la RDC."
+        self.q1.save()
+        self.demarrer()
+        self.client.post(reverse("reviews:answer"), {"choice": 0})
+        self.assertContains(self.client.get(reverse("reviews:session")), "Kinshasa est la capitale de la RDC.")
+
+    def test_le_fournisseur_d_ia_n_est_pas_affiche(self):
+        self.quiz.generated_by = "Gemini · modèle de test"
+        self.quiz.save()
+        page_quiz = self.client.get(reverse("quizzes:detail", args=[self.quiz.pk]))
+        page_chapitre = self.client.get(reverse("courses:chapter_detail", args=[self.quiz.chapter.pk]))
+        self.assertNotContains(page_quiz, "Gemini")
+        self.assertNotContains(page_chapitre, "Gemini")
 
     def demarrer(self):
         return self.client.post(reverse("reviews:start_quiz", args=[self.quiz.pk]))
@@ -98,7 +121,7 @@ class ReviewFlowTests(TestCase):
 
     def test_note_invalide_refusee(self):
         self.demarrer()
-        self.client.post(reverse("reviews:answer"), {"choice": 2})
+        self.client.post(reverse("reviews:answer"), {"choice": 0})   # mauvaise réponse : écran de correction
         response = self.client.post(reverse("reviews:grade"), {"grade": 2})
         self.assertEqual(response.status_code, 400)
 

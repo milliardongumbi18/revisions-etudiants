@@ -1493,3 +1493,16 @@
     cursor: pointer;
   }
 }
+/* ==========================================================================
+   Ajouts étape 13a : explication repliable (questions courtes)
+   ========================================================================== */
+@layer components {
+  .explain summary {
+    cursor: pointer;
+    width: fit-content;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .explain summary:hover { color: var(--brand-hover); }
+}
