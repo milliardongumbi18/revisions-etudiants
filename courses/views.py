@@ -12,6 +12,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, FormView, L
 
 from .forms import ChapterForm, CourseForm, CourseImportForm
 from .models import Chapter, Course
+from reviews.stats import progression_chapitre, progression_cours
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ class CourseDetailView(OwnedCourseMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["chapters"] = self.object.chapters.all()
+        context["progression"] = progression_cours(self.request.user, self.object)
         return context
 
 
@@ -154,6 +156,7 @@ class ChapterDetailView(OwnedChapterMixin, DetailView):
         context["total"] = len(chapitres)
         context["previous"] = chapitres[index - 1] if index > 0 else None
         context["next"] = chapitres[index + 1] if index < len(chapitres) - 1 else None
+        context["progression"] = progression_chapitre(self.request.user, self.object)
         return context
 
 
