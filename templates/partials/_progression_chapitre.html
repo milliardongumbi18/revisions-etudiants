@@ -1,16 +1,15 @@
-{# Progression d'UN chapitre : l'essentiel en une carte (le détail complet est sur la page du cours) #}
+{# Progression d'UN chapitre : une barre, c'est tout #}
 <section class="mt-12" data-reveal>
   <h2 class="text-2xl font-bold">Progression</h2>
   {% with r=prog.resume %}
     {% if r.questions %}
-      <article class="card mt-5">
-        <p><span class="prog-value">{{ r.maitrise }} %</span> <span class="text-muted">maîtrisé</span></p>
+      <div class="card mt-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="font-semibold">{{ r.maitrise }} % maîtrisé</span>
+          <span class="text-muted text-sm">{{ r.questions }} question{{ r.questions|pluralize }}</span>
+        </div>
         <div class="progress progress-course mt-3" style="--value: {{ r.maitrise }}%"><span></span></div>
-        <p class="text-muted mt-3 text-sm">
-          {{ r.questions }} question{{ r.questions|pluralize }} ·
-          {% if r.reussite is not None %}{{ r.reussite }} % de bonnes réponses{% else %}pas encore révisé{% endif %}
-        </p>
-      </article>
+      </div>
     {% else %}
       <p class="text-muted mt-3">Génère un quiz puis révise-le pour suivre ta progression.</p>
     {% endif %}
