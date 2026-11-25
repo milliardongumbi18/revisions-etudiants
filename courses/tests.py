@@ -198,3 +198,14 @@ class FormatNotesTests(CourseTestCase):
         texte = {"texte": "un texte dicté assez long pour être mis en forme"}
         self.client.post(self.url, texte)
         self.assertEqual(self.client.post(self.url, texte).status_code, 429)
+
+@override_settings(STORAGES=STOCKAGE_MEMOIRE)
+class FichierGardeTests(CourseTestCase):
+    def test_titre_oublie_le_texte_du_fichier_reste_dans_les_notes(self):
+        url = reverse("courses:chapter_create", args=[self.course_awa.pk])
+        pdf = SimpleUploadedFile("Chapitre 1.pdf", make_pdf("Les sources du droit"), content_type="application/pdf")
+        response = self.client.post(url, {"title": "", "source_file": pdf})
+        self.assertEqual(response.status_code, 200)                 # la page revient avec l'erreur…
+        self.assertContains(response, "Les sources du droit")       # …mais le texte du PDF est conservé
+        self.assertContains(response, "a été lu")
+        self.assertFalse(Chapter.objects.exists())

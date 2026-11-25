@@ -360,3 +360,63 @@
     });
   });
 })();
+
+/* ==========================================================================
+   Vérification avant l'envoi : évite un rechargement (et la perte du fichier choisi)
+   Le serveur revérifie TOUJOURS : ceci n'est qu'un confort, pas une sécurité.
+   ========================================================================== */
+(() => {
+  const blocDe = (champ) => champ.closest(".field") || champ.parentElement;
+
+  const montrer = (champ, message) => {
+    let erreur = blocDe(champ).querySelector("[data-client-error]");
+    if (!erreur) {
+      erreur = document.createElement("p");
+      erreur.className = "field-error";
+      erreur.dataset.clientError = "";
+      blocDe(champ).append(erreur);
+    }
+    erreur.textContent = message;   // textContent : aucun HTML injecté
+    champ.setAttribute("aria-invalid", "true");
+  };
+
+  const effacer = (champ) => {
+    blocDe(champ).querySelector("[data-client-error]")?.remove();
+    champ.removeAttribute("aria-invalid");
+  };
+
+  const probleme = (champ) => {
+    if (champ.type === "file") {
+      const fichier = champ.files[0];
+      const max = Number(champ.dataset.maxMo || 0);
+      if (champ.required && !fichier) return "Choisis un fichier.";
+      if (fichier && max && fichier.size > max * 1024 * 1024) return `Fichier trop lourd : ${max} Mo maximum.`;
+      return "";
+    }
+    const rempli = champ.type === "checkbox" ? champ.checked : champ.value.trim() !== "";
+    return champ.required && !rempli ? "Ce champ est obligatoire." : "";
+  };
+
+  document.querySelectorAll("form[novalidate]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      const fautifs = [];
+      form.querySelectorAll("input:not([type=hidden]), select, textarea").forEach((champ) => {
+        if (champ.disabled) return;
+        const message = probleme(champ);
+        if (message) { montrer(champ, message); fautifs.push(champ); } else { effacer(champ); }
+      });
+      if (fautifs.length) {
+        event.preventDefault();             // la page ne part pas : le fichier choisi est conservé
+        event.stopImmediatePropagation();   // le micro, les confirmations, etc. ne se déclenchent pas
+        fautifs[0].focus();
+      }
+    }, true);   // true = phase de capture : passe AVANT les autres écouteurs du formulaire
+
+    // Le message disparaît dès que l'étudiant corrige
+    ["input", "change"].forEach((type) =>
+      form.addEventListener(type, (event) => {
+        if (event.target.getAttribute?.("aria-invalid") === "true" && !probleme(event.target)) effacer(event.target);
+      })
+    );
+  });
+})();

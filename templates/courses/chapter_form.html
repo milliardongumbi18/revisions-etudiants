@@ -31,6 +31,9 @@
           {% if object.source_file %}
             <p class="help">Fichier actuel : <strong>{{ object.original_filename|default:"fichier source" }}</strong>. En envoyer un nouveau remplacera le texte.</p>
           {% endif %}
+          {% if form.fichier_lu %}
+            <p class="help">✓ « {{ form.fichier_lu }} » a été lu : son texte est dans les notes ci-dessous. Complète ce qui manque et enregistre. Le PDF d'origine ne sera joint que si tu le choisis à nouveau.</p>
+          {% endif %}
           {% for error in form.source_file.errors %}
             <p class="field-error">{{ error }}</p>
           {% endfor %}
