@@ -10,32 +10,36 @@
         <span class="prog-value">{% if prog.resume.reussite is not None %}{{ prog.resume.reussite }} %{% else %}—{% endif %}</span>
         <span class="prog-label">de bonnes réponses</span>
       </div>
-      <div class="prog-tile"><span class="prog-value">{{ prog.resume.reponses }}</span><span class="prog-label">réponses données</span></div>
+        <div class="prog-tile" title="Une même question revient plusieurs fois : c'est la répétition espacée.">
+            <span class="prog-value">{{ prog.resume.reponses }}</span><span class="prog-label">révisions faites</span>
+      </div>
     </div>
 
     <article class="card mt-5">
       <h3 class="font-bold">Évolution du taux de réussite <span class="text-muted text-sm font-normal">· 8 dernières semaines</span></h3>
       {% with ev=prog.evolution %}
         {% if ev.a_des_donnees %}
-          <svg class="prog-chart mt-4" viewBox="0 0 {{ ev.largeur }} {{ ev.hauteur }}" role="img"
-               aria-label="Taux de bonnes réponses par semaine sur les 8 dernières semaines">
-            {% for ligne in ev.grille %}
-              <line x1="{{ ev.semaines.0.x }}" x2="{{ ev.largeur }}" y1="{{ ligne.y }}" y2="{{ ligne.y }}" class="prog-grid"/>
-              <text x="0" y="{{ ligne.y }}" dy="5" class="prog-axis">{{ ligne.valeur }} %</text>
-            {% endfor %}
-            <polyline points="{{ ev.trace }}" pathLength="1" class="prog-line"/>
-            {% for s in ev.semaines %}
-              {% if s.y is not None %}
-                <circle cx="{{ s.x }}" cy="{{ s.y }}" r="6" class="prog-dot">
-                  <title>Semaine du {{ s.debut|date:"j F" }} : {{ s.taux }} % ({{ s.justes }}/{{ s.total }})</title>
-                </circle>
-              {% endif %}
-            {% endfor %}
-          </svg>
-          <div class="text-muted mt-1 flex justify-between text-xs">
+        <div class="prog-chart mt-5">
+            <div class="prog-axis" aria-hidden="true">
+              {% for ligne in ev.grille %}<span style="top: {{ ligne.y }}%">{{ ligne.valeur }} %</span>{% endfor %}
+            </div>
+            <div class="prog-plot" role="img" aria-label="Taux de bonnes réponses par semaine sur les 8 dernières semaines">
+              {% for ligne in ev.grille %}<span class="prog-grid" style="top: {{ ligne.y }}%"></span>{% endfor %}
+              <svg class="prog-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="{{ ev.trace }}" class="prog-line"/>
+              </svg>
+              {% for s in ev.semaines %}
+                {% if s.y is not None %}
+                  <span class="prog-dot" style="left: {{ s.x }}%; top: {{ s.y }}%"
+                        title="Semaine du {{ s.debut|date:'j F' }} : {{ s.taux }} % ({{ s.justes }}/{{ s.total }})"></span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="text-muted mt-3 flex justify-between pl-14 text-xs">
             <span>Semaine du {{ ev.semaines.0.debut|date:"j M" }}</span>
             <span>Cette semaine</span>
-          </div>
+        </div>
         {% else %}
           <p class="text-muted mt-3">Révise ces questions pour voir ta courbe apparaître ici.</p>
         {% endif %}

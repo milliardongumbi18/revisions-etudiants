@@ -1,12 +1,10 @@
 """
-Évolution de la réussite semaine par semaine, et tracé de la courbe en SVG.
+Évolution de la réussite semaine par semaine, et coordonnées de la courbe.
 Fonctions pures (sans Django) : faciles à tester.
 """
 from datetime import timedelta
 
 SEMAINES = 8
-LARGEUR, HAUTEUR = 560, 180       # repère du dessin SVG (viewBox), pas des pixels réels
-MARGE_X, MARGE_Y = 52, 16
 
 
 def debut_semaine(jour):
@@ -33,26 +31,30 @@ def evolution(reponses, aujourd_hui, semaines=SEMAINES):
     ]
 
 
-def _y(taux):
-    """0 % en bas, 100 % en haut."""
-    return round(MARGE_Y + (100 - taux) * (HAUTEUR - 2 * MARGE_Y) / 100, 1)
+def _pct(valeur):
+    """
+    Nombre → texte avec un POINT décimal (« 14.29 »).
+    Indispensable : en français, le gabarit écrirait « 14,29 », que le CSS et le SVG ne comprennent pas.
+    """
+    return f"{valeur:.2f}".rstrip("0").rstrip(".")
 
 
 def tracer(serie):
-    """Ajoute les coordonnées SVG à chaque semaine et prépare la ligne de la courbe."""
-    pas = (LARGEUR - MARGE_X - 16) / max(1, len(serie) - 1)
+    """
+    Coordonnées en pourcentage (0 à 100) : le graphique s'adapte à toutes les largeurs d'écran.
+    x : 0 = semaine la plus ancienne, 100 = cette semaine ; y : 0 = 100 % (en haut), 100 = 0 % (en bas).
+    """
+    pas = 100 / max(1, len(serie) - 1)
     semaines = []
     for index, semaine in enumerate(serie):
         point = dict(semaine)
-        point["x"] = round(MARGE_X + index * pas, 1)
-        point["y"] = None if semaine["taux"] is None else _y(semaine["taux"])
+        point["x"] = _pct(index * pas)
+        point["y"] = None if semaine["taux"] is None else _pct(100 - semaine["taux"])
         semaines.append(point)
     avec_donnees = [p for p in semaines if p["y"] is not None]
     return {
         "semaines": semaines,
         "trace": " ".join(f"{p['x']},{p['y']}" for p in avec_donnees),
         "a_des_donnees": bool(avec_donnees),
-        "largeur": LARGEUR,
-        "hauteur": HAUTEUR,
-        "grille": [{"y": _y(valeur), "valeur": valeur} for valeur in (100, 50, 0)],
+        "grille": [{"y": _pct(100 - valeur), "valeur": valeur} for valeur in (100, 50, 0)],
     }
