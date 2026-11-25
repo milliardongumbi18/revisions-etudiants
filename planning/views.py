@@ -1,10 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views import View
 from django.views.generic import CreateView, DeleteView, TemplateView, UpdateView
 
+from courses.models import Course
+
 from .forms import ClassSlotForm, ExamForm
-from .models import ClassSlot, Exam, Weekday
+from .models import ClassSlot, Exam, PlanCheck, Weekday
 from .utils import user_plan
 
 
@@ -18,6 +23,9 @@ class PlanningView(LoginRequiredMixin, TemplateView):
         donnees = user_plan(self.request.user)
         context.update({
             "plan": donnees["plan"],
+            "today": donnees["plan"][0],
+            "next_days": donnees["plan"][1:],
+            "progress": donnees["progress"],
             "exams": donnees["exams"],
             "has_courses": donnees["has_courses"],
             "week": [
@@ -116,3 +124,16 @@ class ExamDeleteView(OwnedMixin, SuccessMessageMixin, DeleteView):
         context["warning"] = "Le planning ne tiendra plus compte de cet examen."
         context["cancel_url"] = reverse("planning:exam_update", args=[self.object.pk])
         return context
+    
+
+class PlanCheckToggleView(LoginRequiredMixin, View):
+    """Coche ou décoche « Fait » sur un bloc de cours d'aujourd'hui."""
+
+    http_method_names = ["post"]   # une modification ne passe jamais par un simple lien (GET)
+
+    def post(self, request, course_pk):
+        cours = get_object_or_404(Course, pk=course_pk, owner=request.user)   # 404 si ce n'est pas mon cours
+        coche, creee = PlanCheck.objects.get_or_create(owner=request.user, course=cours, date=timezone.localdate())
+        if not creee:
+            coche.delete()   # 2e clic : on décoche
+        return redirect(f"{reverse('planning:home')}#aujourdhui")

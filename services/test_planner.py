@@ -3,7 +3,9 @@ from datetime import date
 
 from django.test import SimpleTestCase
 
-from .planner import CourseInfo, ExamInfo, build_plan, charge_du_jour
+from datetime import time
+
+from .planner import Block, CourseInfo, DayPlan, ExamInfo, build_plan, charge_du_jour, placer_horaires
 
 LUNDI = date(2026, 11, 16)   # un lundi
 
@@ -37,3 +39,19 @@ class PlannerTests(SimpleTestCase):
         jour = build_plan(LUNDI, [CourseInfo(1, "Droit")], {0: 300}, [], revisions_par_date={LUNDI: 12}, jours=1)[0]
         self.assertEqual((jour.budget, jour.load), (30, "très chargé"))
         self.assertEqual((jour.blocks[0].kind, jour.blocks[0].minutes), ("revisions", 12))
+
+    def test_jour_libre_commence_le_matin_avec_des_pauses(self):
+        jour = DayPlan(date(2026, 1, 5), 0, 120, "libre", [Block("revisions", "SRS", 20), Block("cours", "Droit", 60)])
+        placer_horaires(jour, [])
+        self.assertEqual(jour.blocks[0].start, time(9, 0))
+        self.assertEqual(jour.blocks[1].start, time(9, 30))   # 20 min + 10 min de pause
+        self.assertEqual(jour.blocks[1].end, time(10, 30))
+
+    def test_jour_de_cours_revisions_apres_le_dernier_cours(self):
+        soir = DayPlan(date(2026, 1, 5), 240, 60, "chargé", [Block("cours", "Droit", 30)])
+        placer_horaires(soir, [time(10, 0), time(16, 30)])
+        self.assertEqual(soir.blocks[0].start, time(17, 30))    # 1 h après le dernier cours
+
+        matin = DayPlan(date(2026, 1, 5), 120, 90, "léger", [Block("cours", "Droit", 30)])
+        placer_horaires(matin, [time(10, 0)])
+        self.assertEqual(matin.blocks[0].start, time(15, 0))    # jamais avant 15 h un jour de cours

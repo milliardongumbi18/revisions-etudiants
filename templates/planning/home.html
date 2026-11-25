@@ -32,56 +32,145 @@
     </div>
   {% endif %}
 
-  {# ===== Planning des 14 jours ===== #}
-  <h2 class="mt-12 text-2xl font-bold">Les 14 prochains jours</h2>
   {% if not has_courses %}
-    <div class="empty-state mt-6">
+    <div class="empty-state mt-10">
       <h3 class="text-xl font-bold">Crée d'abord tes cours</h3>
       <p class="text-muted mx-auto mt-2 max-w-md">Le planning répartit ton temps de révision entre tes cours.</p>
       <a href="{% url 'courses:create' %}" class="btn btn-primary mt-6">Créer un cours</a>
     </div>
   {% else %}
-    <div class="plan-grid mt-6">
-      {% for day in plan %}
-        <div data-reveal style="--delay: {% widthratio forloop.counter0 1 40 %}ms">
-          <article class="card plan-day{% if forloop.first %} is-today{% endif %}">
-            <header class="flex items-start justify-between gap-2">
-              <div>
-                <p class="font-bold first-letter:uppercase">{% if forloop.first %}Aujourd'hui{% else %}{{ day.date|date:"l" }}{% endif %}</p>
-                <p class="text-muted text-sm">{{ day.date|date:"j F" }}</p>
-              </div>
-              <span class="load-badge" data-load="{{ day.load }}">{{ day.load }}</span>
-            </header>
-            {% if day.class_minutes %}
-              <p class="text-muted mt-2 text-xs">{{ day.class_duree }} de cours</p>
-            {% endif %}
 
-            <ul class="plan-blocks mt-4">
-              {% for block in day.blocks %}
-                {% if block.kind == "examen" %}
-                  <li class="plan-block is-exam"><span>🎓 {{ block.title }}</span></li>
-                {% elif block.kind == "revisions" %}
-                  <li class="plan-block is-srs">
-                    <a href="{% url 'reviews:home' %}">🔁 {{ block.title }}</a><span>{{ block.duree }}</span>
-                  </li>
-                {% else %}
-                  <li class="plan-block" data-color="{{ block.color }}" style="--part: {% widthratio block.minutes day.budget 100 %}%">
-                    <span>{{ block.title }}</span><span>{{ block.duree }}</span>
-                  </li>
-                {% endif %}
-              {% empty %}
-                <li class="text-muted text-sm">Repos bien mérité 😌</li>
-              {% endfor %}
-            </ul>
-          </article>
+    {# ===== Aujourd'hui : l'agenda ===== #}
+    <article id="aujourdhui" class="card agenda-today animate-in mt-10" style="--delay: 120ms">
+      <header class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p class="eyebrow">Aujourd'hui</p>
+          <h2 class="mt-1 text-2xl font-extrabold md:text-3xl">{{ today.date|date:"l j F"|capfirst }}</h2>
+          <p class="text-muted mt-1 text-sm">
+            {% if today.class_minutes %}{{ today.class_duree }} de cours · {% endif %}{{ today.revision_duree }} de révision prévue
+          </p>
         </div>
+        <span class="load-badge" data-load="{{ today.load }}">{{ today.load }}</span>
+      </header>
+
+      {% if progress.total %}
+        <div class="agenda-progress mt-5" role="progressbar" aria-label="Blocs terminés aujourd'hui"
+             aria-valuemin="0" aria-valuemax="{{ progress.total }}" aria-valuenow="{{ progress.faits }}">
+          <span style="--part: {% widthratio progress.faits progress.total 100 %}%"></span>
+        </div>
+        <p class="text-muted mt-2 text-sm">
+          {% if progress.faits == progress.total %}Journée terminée, bravo ! 🎉{% else %}{{ progress.faits }} sur {{ progress.total }} terminé{{ progress.faits|pluralize }}{% endif %}
+        </p>
+      {% endif %}
+
+      <ol class="agenda mt-6">
+        {# Examens du jour #}
+        {% for block in today.blocks %}{% if block.kind == "examen" %}
+          <li class="agenda-item is-exam">
+            <span class="agenda-time" aria-hidden="true">🎓</span>
+            <div class="agenda-body">
+              <div class="min-w-0"><p class="agenda-title">{{ block.title }}</p><p class="agenda-meta">Bon courage !</p></div>
+            </div>
+          </li>
+        {% endif %}{% endfor %}
+
+        {# Cours à l'université #}
+        {% for slot in today.classes %}
+          <li class="agenda-item is-class">
+            <span class="agenda-time">{{ slot.start_time|time:"H:i" }}<small>{{ slot.end_time|time:"H:i" }}</small></span>
+            <div class="agenda-body" data-color="{{ slot.course.color|default:'indigo' }}">
+              <div class="min-w-0"><p class="agenda-title">{{ slot.name }}</p><p class="agenda-meta">Cours à l'université</p></div>
+            </div>
+          </li>
+        {% endfor %}
+
+        {# Révisions #}
+        {% for block in today.blocks %}
+          {% if block.kind == "revisions" %}
+            <li class="agenda-item is-srs">
+              <span class="agenda-time">{% if block.start %}{{ block.start|time:"H:i" }}<small>{{ block.end|time:"H:i" }}</small>{% endif %}</span>
+              <div class="agenda-body">
+                <div class="min-w-0"><p class="agenda-title">🔁 {{ block.title }}</p><p class="agenda-meta">{{ block.duree }}</p></div>
+                <form method="post" action="{% url 'reviews:start_due' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary btn-sm">Commencer</button>
+                </form>
+              </div>
+            </li>
+          {% elif block.kind == "cours" %}
+            <li class="agenda-item{% if block.done %} is-done{% endif %}">
+              <span class="agenda-time">{% if block.start %}{{ block.start|time:"H:i" }}<small>{{ block.end|time:"H:i" }}</small>{% endif %}</span>
+              <div class="agenda-body" data-color="{{ block.color }}">
+                <a href="{% url 'courses:detail' block.course_id %}" class="agenda-link">
+                  <p class="agenda-title">{{ block.title }}</p><p class="agenda-meta">Réviser · {{ block.duree }}</p>
+                </a>
+                <form method="post" action="{% url 'planning:toggle_done' block.course_id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="check-btn" aria-pressed="{{ block.done|yesno:'true,false' }}">{% if block.done %}✓ Fait{% else %}Fait ?{% endif %}</button>
+                </form>
+              </div>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if progress.srs_terminee %}
+          <li class="agenda-item is-srs is-done">
+            <span class="agenda-time" aria-hidden="true">✓</span>
+            <div class="agenda-body">
+              <div class="min-w-0"><p class="agenda-title">🔁 Répétition espacée terminée</p><p class="agenda-meta">{{ progress.revisees }} réponse{{ progress.revisees|pluralize }} aujourd'hui</p></div>
+            </div>
+          </li>
+        {% endif %}
+
+        {% if not today.blocks and not today.classes and not progress.srs_terminee %}
+          <li class="text-muted text-sm">Repos bien mérité 😌</li>
+        {% endif %}
+      </ol>
+    </article>
+
+    {# ===== Les jours suivants : liste repliable ===== #}
+    <h2 class="mt-12 text-2xl font-bold">Les prochains jours</h2>
+    <p class="text-muted mt-1 text-sm">Touche un jour pour voir son programme.</p>
+    <div class="agenda-days mt-5">
+      {% for day in next_days %}
+        <details class="agenda-day">
+          <summary>
+            <span class="min-w-0">
+              <span class="font-bold">{% if forloop.first %}Demain{% else %}{{ day.date|date:"l"|capfirst }}{% endif %}</span>
+              <span class="text-muted text-sm">{{ day.date|date:"j F" }}</span>
+            </span>
+            <span class="flex shrink-0 items-center gap-2">
+              {% if day.has_exam %}<span title="Examen ce jour-là">🎓</span>{% endif %}
+              <span class="text-muted hidden text-sm sm:inline">{{ day.revision_duree }}</span>
+              <span class="load-badge" data-load="{{ day.load }}">{{ day.load }}</span>
+            </span>
+          </summary>
+          <ul class="agenda-mini">
+            {% for slot in day.classes %}
+              <li class="is-class" data-color="{{ slot.course.color|default:'indigo' }}">
+                <span class="agenda-time">{{ slot.start_time|time:"H:i" }}</span>
+                <span class="min-w-0">{{ slot.name }}</span>
+                <span class="text-muted">cours</span>
+              </li>
+            {% endfor %}
+            {% for block in day.blocks %}
+              <li class="{% if block.kind == 'examen' %}is-exam{% elif block.kind == 'revisions' %}is-srs{% endif %}" data-color="{{ block.color }}">
+                <span class="agenda-time">{% if block.kind == "examen" %}🎓{% elif block.start %}{{ block.start|time:"H:i" }}{% endif %}</span>
+                <span class="min-w-0">{{ block.title }}</span>
+                <span class="text-muted">{% if block.minutes %}{{ block.duree }}{% endif %}</span>
+              </li>
+            {% empty %}
+              {% if not day.classes %}<li class="text-muted">Repos bien mérité 😌</li>{% endif %}
+            {% endfor %}
+          </ul>
+        </details>
       {% endfor %}
     </div>
   {% endif %}
 
   {# ===== Emploi du temps ===== #}
   <h2 class="mt-14 text-2xl font-bold">Mon emploi du temps</h2>
-  <p class="text-muted mt-1 text-sm">Tes horaires de cours, chaque semaine. Ils déterminent tes jours chargés et tes jours libres.</p>
+  <p class="text-muted mt-1 text-sm">Tes horaires de cours, chaque semaine. Ils déterminent tes jours chargés, tes jours libres et l'heure de tes révisions.</p>
   <div class="week-grid mt-6">
     {% for jour, creneaux in week %}
       <div class="week-day">

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from courses.models import Course
 
-from .models import ClassSlot
+from .models import ClassSlot, PlanCheck
 
 User = get_user_model()
 
@@ -60,3 +60,23 @@ class PlanningViewsTests(TestCase):
         response = self.client.get(reverse("planning:home"))
         self.assertEqual(response.context["plan"][3].blocks[0].kind, "examen")
         self.assertContains(response, "J-3")
+
+    def test_cocher_puis_decocher_un_bloc(self):
+        url = reverse("planning:toggle_done", args=[self.course_awa.pk])
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertTrue(PlanCheck.objects.filter(owner=self.awa, course=self.course_awa).exists())
+        self.client.post(url)
+        self.assertFalse(PlanCheck.objects.exists())
+
+    def test_cocher_le_cours_d_un_autre_impossible(self):
+        response = self.client.post(reverse("planning:toggle_done", args=[self.course_bob.pk]))
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(PlanCheck.objects.exists())
+
+    def test_bloc_coche_affiche_comme_fait(self):
+        PlanCheck.objects.create(owner=self.awa, course=self.course_awa, date=timezone.localdate())
+        response = self.client.get(reverse("planning:home"))
+        bloc = next(b for b in response.context["today"].blocks if b.kind == "cours")
+        self.assertTrue(bloc.done)
+        self.assertEqual(response.context["progress"]["faits"], 1)
+        self.assertContains(response, "✓ Fait")

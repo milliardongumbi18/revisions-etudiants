@@ -7,13 +7,19 @@ Pour chaque jour :
 3. Le reste est réparti en blocs de 30 min entre les cours. Le poids d'un cours
    augmente à l'approche de son examen ; un équilibrage sur toute la période
    évite d'oublier un cours.
+4. placer_horaires() donne une heure à chaque bloc (agenda).
 """
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 BLOC = 30                 # minutes
 HORIZON_JOURS = 14
 FENETRE_EXAMEN = 21       # un examen commence à peser 21 jours avant
+
+DEBUT_JOUR_LIBRE = time(9, 0)     # jour sans cours : on révise le matin
+DEBUT_APRES_COURS = time(15, 0)   # jour de cours : jamais avant 15 h
+APRES_COURS = 60                  # minutes pour rentrer et souffler après le dernier cours
+PAUSE = 10                        # minutes entre deux blocs
 
 
 def format_duree(minutes):
@@ -46,10 +52,18 @@ class Block:
     minutes: int = 0
     color: str = "indigo"
     course_id: int | None = None
+    start: time | None = None   # heure de début (agenda)
+    done: bool = False          # coché « Fait » par l'étudiant
 
     @property
     def duree(self):
         return format_duree(self.minutes)
+
+    @property
+    def end(self):
+        if self.start is None:
+            return None
+        return (datetime.combine(date.min, self.start) + timedelta(minutes=self.minutes)).time()
 
 
 @dataclass
@@ -59,10 +73,19 @@ class DayPlan:
     budget: int
     load: str
     blocks: list = field(default_factory=list)
+    classes: list = field(default_factory=list)   # créneaux de cours à l'université ce jour-là
 
     @property
     def class_duree(self):
         return format_duree(self.class_minutes)
+
+    @property
+    def revision_duree(self):
+        return format_duree(sum(b.minutes for b in self.blocks))
+
+    @property
+    def has_exam(self):
+        return any(b.kind == "examen" for b in self.blocks)
 
 
 def charge_du_jour(minutes_de_cours):
@@ -133,3 +156,23 @@ def build_plan(debut, courses, minutes_par_jour_semaine, exams, revisions_par_da
 
         planning.append(journee)
     return planning
+
+
+def placer_horaires(journee, fins_de_cours):
+    """
+    Donne une heure de début à chaque bloc de révision (les examens n'en ont pas).
+    fins_de_cours : heures de fin des cours à l'université ce jour-là.
+    """
+    if fins_de_cours:
+        apres = datetime.combine(journee.date, max(fins_de_cours)) + timedelta(minutes=APRES_COURS)
+        debut = max(apres, datetime.combine(journee.date, DEBUT_APRES_COURS))
+    else:
+        debut = datetime.combine(journee.date, DEBUT_JOUR_LIBRE)
+
+    for bloc in journee.blocks:
+        if bloc.kind == "examen":
+            continue
+        if debut.date() != journee.date:   # on ne déborde jamais sur le lendemain
+            break
+        bloc.start = debut.time()
+        debut += timedelta(minutes=bloc.minutes + PAUSE)

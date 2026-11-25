@@ -1586,3 +1586,112 @@
   }
   .format-bar [aria-busy="true"] { opacity: .6; cursor: progress; }
 }
+/* ==========================================================================
+   Ajouts étape 13d : planning en agenda
+   ========================================================================== */
+@layer components {
+  .agenda-today {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent), var(--shadow);
+  }
+  .agenda-progress { height: .5rem; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+  .agenda-progress > span {
+    display: block;
+    width: var(--part, 0%);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--leaf);
+    transition: width .6s var(--ease-out);
+  }
+
+  /* Ligne d'agenda : heure à gauche, bloc à droite */
+  .agenda { display: grid; gap: .75rem; }
+  .agenda-item { display: grid; grid-template-columns: 3.25rem 1fr; gap: .75rem; }
+  .agenda-time {
+    padding-top: .75rem;
+    font-family: var(--font-display);
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .agenda-time small { display: block; color: var(--muted); font-size: .75rem; font-weight: 500; }
+  .agenda-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    min-width: 0;
+    padding: .75rem .9rem;
+    border-left: 4px solid var(--course, var(--brand));
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--course, var(--brand)) 9%, var(--surface));
+    transition: opacity .2s;
+  }
+  .agenda-title { font-weight: 700; overflow-wrap: anywhere; }
+  .agenda-meta { color: var(--muted); font-size: .8rem; }
+  .agenda-link { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+  .agenda-link:hover .agenda-title { text-decoration: underline; }
+
+  .agenda-item.is-class .agenda-body { border-left-style: dashed; background: var(--surface-2); }
+  .agenda-item.is-srs .agenda-body { --course: var(--accent); }
+  .agenda-item.is-exam .agenda-body { --course: var(--danger); color: var(--danger); }
+  .agenda-item.is-done .agenda-body { opacity: .6; }
+  .agenda-item.is-done .agenda-title { text-decoration: line-through; }
+
+  /* Bouton « Fait ? » → « ✓ Fait » */
+  .check-btn {
+    flex-shrink: 0;
+    padding: .4rem .8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .check-btn:hover { border-color: var(--leaf); color: var(--leaf); }
+  .check-btn[aria-pressed="true"] { border-color: var(--leaf); background: var(--leaf); color: #fff; }
+
+  /* Jours suivants : liste repliable */
+  .agenda-days { display: grid; gap: .6rem; }
+  .agenda-day { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  .agenda-day > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .9rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+  }
+  .agenda-day > summary::-webkit-details-marker { display: none; }
+  .agenda-day > summary::after {
+    content: "›";
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 1.3rem;
+    line-height: 1;
+    transition: transform .2s var(--ease-out);
+  }
+  .agenda-day[open] > summary::after { transform: rotate(90deg); }
+  .agenda-mini { display: grid; gap: .4rem; padding: 0 1.1rem 1rem; }
+  .agenda-mini li {
+    display: grid;
+    grid-template-columns: 2.75rem 1fr auto;
+    gap: .6rem;
+    align-items: center;
+    padding: .5rem .7rem;
+    border-left: 3px solid var(--course, var(--brand));
+    border-radius: 10px;
+    background: var(--surface-2);
+    font-size: .85rem;
+  }
+  .agenda-mini li.is-class { border-left-style: dashed; }
+  .agenda-mini li.is-srs { --course: var(--accent); }
+  .agenda-mini li.is-exam { --course: var(--danger); color: var(--danger); font-weight: 700; }
+  .agenda-mini .agenda-time { padding: 0; font-size: .8rem; text-align: left; }
+}

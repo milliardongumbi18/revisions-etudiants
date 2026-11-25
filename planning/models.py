@@ -71,3 +71,23 @@ class Exam(models.Model):
 
     def __str__(self):
         return f"{self.title or 'Examen'} · {self.course} ({self.date:%d/%m/%Y})"
+
+
+class PlanCheck(models.Model):
+    """Un bloc de révision du jour coché « Fait » (un par cours et par jour)."""
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="plan_checks", verbose_name="propriétaire"
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="plan_checks", verbose_name="cours")
+    date = models.DateField("jour")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "course", "date"], name="planning_bloc_fait_unique"),
+        ]
+        verbose_name = "bloc fait"
+        verbose_name_plural = "blocs faits"
+
+    def __str__(self):
+        return f"{self.course} · {self.date:%d/%m/%Y}"
