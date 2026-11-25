@@ -25,14 +25,14 @@
             <span class="icon-tile" style="--tile: var(--course)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
             </span>
-            <span class="dropzone-file" data-dropzone-label>Glisse ton PDF ou ton .txt ici, ou clique pour le choisir</span>
-            <span class="help">PDF ou .txt · 10 Mo maximum · le texte sera extrait automatiquement</span>
+            <span class="dropzone-file" data-dropzone-label>Glisse ton fichier ici, ou clique pour le choisir</span>
+            <span class="help">PDF, Word (.docx), PowerPoint (.pptx) ou .txt · 10 Mo maximum · le texte sera extrait automatiquement</span>
           </label>
           {% if object.source_file %}
             <p class="help">Fichier actuel : <strong>{{ object.original_filename|default:"fichier source" }}</strong>. En envoyer un nouveau remplacera le texte.</p>
           {% endif %}
           {% if form.fichier_lu %}
-            <p class="help">✓ « {{ form.fichier_lu }} » a été lu : son texte est dans les notes ci-dessous. Complète ce qui manque et enregistre. Le PDF d'origine ne sera joint que si tu le choisis à nouveau.</p>
+            <p class="help">✓ « {{ form.fichier_lu }} » a été lu : son texte est dans les notes ci-dessous. Complète ce qui manque et enregistre. Le fichier d'origine ne sera joint que si tu le choisis à nouveau.</p>
           {% endif %}
           {% for error in form.source_file.errors %}
             <p class="field-error">{{ error }}</p>
