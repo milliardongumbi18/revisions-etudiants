@@ -168,9 +168,11 @@ class ProgressionTests(CourseTestCase):
         self.assertContains(response, "50 % maîtrisé")
         self.assertContains(response, "75 % de réussite")
 
-    def test_page_du_chapitre_affiche_la_courbe(self):
+    def test_page_du_chapitre_affiche_une_progression_simple(self):
         response = self.client.get(reverse("courses:chapter_detail", args=[self.chapitre.pk]))
-        self.assertContains(response, "<polyline")
+        self.assertContains(response, "50 %")
+        self.assertContains(response, "75 % de bonnes réponses")
+        self.assertNotContains(response, "<polyline")   # pas de courbe sur la page d'un chapitre
 
     def test_chapitre_sans_quiz_l_indique(self):
         Chapter.objects.create(course=self.course_awa, title="Les successions", notes="Notes", order=2)

@@ -1716,3 +1716,10 @@
   .agenda-mini li.is-exam { --course: var(--danger); color: var(--danger); font-weight: 700; }
   .agenda-mini .agenda-time { padding: 0; font-size: .8rem; text-align: left; }
 }
+/* ==========================================================================
+   Correctifs : alignement des jours du planning
+   ========================================================================== */
+@layer components {
+  /* Le nom du jour prend toute la place libre : durée et badge partent à droite, avant la flèche */
+  .agenda-day > summary > :first-child { flex: 1; }
+}
