@@ -1534,26 +1534,47 @@
   }
   .prog-label { font-size: .8rem; color: var(--muted); }
 
-  .prog-chart { display: block; width: 100%; height: auto; overflow: visible; }
-  .prog-grid { stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 5 6; }
-  .prog-axis { fill: var(--muted); font-size: 14px; font-family: var(--font-body); }
+    /* Graphique : étiquettes en HTML (taille fixe), courbe en SVG étirée sur toute la largeur */
+  .prog-chart { display: grid; grid-template-columns: 2.75rem 1fr; gap: .75rem; height: 13rem; }
+  .prog-axis { position: relative; }
+  .prog-axis span {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: .75rem;
+    white-space: nowrap;
+  }
+  .prog-plot { position: relative; margin-right: .5rem; }
+  .prog-grid { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--border); }
+  .prog-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    clip-path: inset(-10px 100% -10px -10px);
+    animation: prog-reveal 1.4s var(--ease-out) .2s forwards;   /* la courbe se dévoile de gauche à droite */
+  }
   .prog-line {
     fill: none;
     stroke: var(--course, var(--brand));
-    stroke-width: 4;
+    stroke-width: 3;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
-    animation: prog-draw 1.4s var(--ease-out) .2s forwards;   /* la courbe se dessine */
+    vector-effect: non-scaling-stroke;   /* épaisseur constante malgré l'étirement */
   }
   .prog-dot {
-    fill: var(--surface);
-    stroke: var(--course, var(--brand));
-    stroke-width: 3.5;
-    transition: r .2s;
+    position: absolute;
+    width: .9rem;
+    height: .9rem;
+    border: 3px solid var(--course, var(--brand));
+    border-radius: 50%;
+    background: var(--surface);
+    transform: translate(-50%, -50%);
+    transition: transform .2s var(--ease-out);
   }
-  .prog-dot:hover { r: 9; }
+  .prog-dot:hover { transform: translate(-50%, -50%) scale(1.35); }
 
   .chapter-stat {
     display: grid;
@@ -1569,9 +1590,9 @@
     box-shadow: var(--shadow);
   }
 }
-@keyframes prog-draw { to { stroke-dashoffset: 0; } }
+@keyframes prog-reveal { to { clip-path: inset(-10px -10px -10px -10px); } }
 @media (prefers-reduced-motion: reduce) {
-  .prog-line { animation: none; stroke-dashoffset: 0; }
+  .prog-svg { animation: none; clip-path: none; }
 }
 /* ==========================================================================
    Ajouts étape 13c : barre de mise en forme des notes
