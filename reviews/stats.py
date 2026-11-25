@@ -72,6 +72,6 @@ def progression_cours(user, course):
 
 
 def progression_chapitre(user, chapter):
+    """Pour un chapitre : seulement le résumé (la courbe reste sur la page du cours)."""
     cartes = ReviewCard.objects.filter(owner=user, question__quiz__chapter=chapter)
-    logs = ReviewLog.objects.filter(owner=user, card__question__quiz__chapter=chapter)
-    return {"resume": _resume(cartes), "evolution": _evolution(logs)}
+    return {"resume": _resume(cartes)}
