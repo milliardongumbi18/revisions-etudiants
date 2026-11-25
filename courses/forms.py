@@ -10,7 +10,11 @@ from services.documents import (
 
 from .models import Chapter, Course
 
-ACCEPT_FICHIERS = ".pdf,.txt,application/pdf,text/plain"
+ACCEPT_FICHIERS = (
+    ".pdf,.docx,.pptx,.txt,application/pdf,text/plain,"
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+)
 MAX_MO = MAX_UPLOAD_SIZE // (1024 * 1024)   # transmis au JavaScript, qui vérifie la taille avant l'envoi
 
 
