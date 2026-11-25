@@ -5,11 +5,13 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import MaxLengthValidator
 
 from core.forms import StyledFormMixin
-from services.documents import MAX_TEXT_CHARS, DocumentError, extract_text_from_upload, split_document
+from services.documents import (
+    MAX_TEXT_CHARS, MAX_UPLOAD_SIZE, DocumentError, extract_text_from_upload, split_document,)
 
 from .models import Chapter, Course
 
 ACCEPT_FICHIERS = ".pdf,.txt,application/pdf,text/plain"
+MAX_MO = MAX_UPLOAD_SIZE // (1024 * 1024)   # transmis au JavaScript, qui vérifie la taille avant l'envoi
 
 
 class CourseForm(StyledFormMixin, forms.ModelForm):
@@ -36,9 +38,9 @@ class ChapterForm(StyledFormMixin, forms.ModelForm):
         fields = ("title", "source_file", "notes")
         widgets = {
             "title": forms.TextInput(attrs={"placeholder": "Ex. Chapitre 1 — Introduction"}),
-            "source_file": forms.FileInput(attrs={"class": "sr-only", "accept": ACCEPT_FICHIERS}),
+            "source_file": forms.FileInput(attrs={"class": "sr-only", "accept": ACCEPT_FICHIERS, "data-max-mo": MAX_MO}),
             "notes": forms.Textarea(
-                attrs={"rows": 16, "placeholder": "Colle ou écris ici tes notes de cours…"}
+            attrs={"rows": 16, "placeholder": "Colle ou écris ici tes notes de cours…"}
             ),
         }
 
@@ -63,10 +65,16 @@ class ChapterForm(StyledFormMixin, forms.ModelForm):
                 return cleaned
             self.instance.original_filename = Path(fichier.name).name[:255]
 
+            # Filet de sécurité : si la page revient avec une erreur (titre oublié…), le navigateur
+            # aura perdu le fichier. On remet donc son TEXTE dans les notes : rien n'est à refaire.
+            self.data = self.data.copy()   # request.POST est en lecture seule : on travaille sur une copie
+            self.data[self.add_prefix("notes")] = cleaned["notes"]
+            self.fichier_lu = self.instance.original_filename
+
         if not cleaned.get("notes"):
             self.add_error("notes", "Écris tes notes ou importe un fichier.")
         return cleaned
-
+    fichier_lu = ""   # nom du fichier déjà lu, affiché si la page revient avec une erreur
 
 class CourseImportForm(StyledFormMixin, forms.Form):
     """Import d'un cours complet : le fichier est découpé en chapitres (voir services/documents.py)."""
