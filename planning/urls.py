@@ -12,4 +12,5 @@ urlpatterns = [
     path("examens/nouveau/", views.ExamCreateView.as_view(), name="exam_create"),
     path("examens/<int:pk>/modifier/", views.ExamUpdateView.as_view(), name="exam_update"),
     path("examens/<int:pk>/supprimer/", views.ExamDeleteView.as_view(), name="exam_delete"),
+    path("fait/<int:course_pk>/", views.PlanCheckToggleView.as_view(), name="toggle_done"),
 ]
