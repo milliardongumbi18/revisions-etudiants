@@ -1,12 +1,7 @@
 """Statistiques de progression d'un cours ou d'un chapitre, pour l'étudiant connecté."""
-from datetime import timedelta
-
 from django.db.models import Count, F, Q, Sum
-from django.utils import timezone
 
-from services.progress import SEMAINES, debut_semaine, evolution, tracer
-
-from .models import ReviewCard, ReviewLog
+from .models import ReviewCard
 
 MAITRISE_JOURS = 21   # même seuil que le tableau de bord : revue dans 21 jours ou plus = maîtrisée
 
@@ -31,17 +26,8 @@ def _resume(cartes):
     }
 
 
-def _evolution(logs):
-    aujourd_hui = timezone.localdate()
-    debut = debut_semaine(aujourd_hui) - timedelta(weeks=SEMAINES - 1)
-    reponses = [
-        (timezone.localtime(moment).date(), correct)   # date en heure de Kinshasa
-        for moment, correct in logs.filter(reviewed_at__date__gte=debut).values_list("reviewed_at", "correct")
-    ]
-    return tracer(evolution(reponses, aujourd_hui))
-
-
 def progression_cours(user, course):
+    """Barre du cours + une barre par chapitre (dans l'ordre des chapitres)."""
     cartes = ReviewCard.objects.filter(owner=user, question__quiz__chapter__course=course)
     par_chapitre = {
         ligne["chapter_id"]: ligne
@@ -50,8 +36,6 @@ def progression_cours(user, course):
         .annotate(
             questions=Count("id"),
             maitrisees=Count("id", filter=Q(interval__gte=MAITRISE_JOURS)),
-            reponses=Sum("review_count"),
-            justes=Sum("correct_count"),
         )
     }
     chapitres = []
@@ -62,16 +46,13 @@ def progression_cours(user, course):
                 "chapter": chapitre,
                 "questions": ligne["questions"],
                 "maitrise": _pourcentage(ligne["maitrisees"], ligne["questions"]) or 0,
-                "reussite": _pourcentage(ligne["justes"] or 0, ligne["reponses"] or 0),
             })
         else:
-            chapitres.append({"chapter": chapitre, "questions": 0, "maitrise": 0, "reussite": None})
-
-    logs = ReviewLog.objects.filter(owner=user, card__question__quiz__chapter__course=course)
-    return {"resume": _resume(cartes), "evolution": _evolution(logs), "chapitres": chapitres}
+            chapitres.append({"chapter": chapitre, "questions": 0, "maitrise": 0})
+    return {"resume": _resume(cartes), "chapitres": chapitres}
 
 
 def progression_chapitre(user, chapter):
-    """Pour un chapitre : seulement le résumé (la courbe reste sur la page du cours)."""
+    """Pour un chapitre : seulement le résumé."""
     cartes = ReviewCard.objects.filter(owner=user, question__quiz__chapter=chapter)
     return {"resume": _resume(cartes)}
