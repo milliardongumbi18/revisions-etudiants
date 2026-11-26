@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from courses.models import Course
 from reviews.models import ReviewCard, ReviewLog
-from services.planner import HORIZON_JOURS, CourseInfo, ExamInfo, build_plan, placer_horaires
+from services.planner import HORIZON_JOURS, PREPARATION, CourseInfo, ExamInfo, build_plan, placer_horaires
 
 from .models import ClassSlot, Exam, PlanCheck
 
@@ -16,7 +16,9 @@ def user_plan(user, jours=HORIZON_JOURS):
     """Renvoie {"plan", "exams", "slots", "has_courses", "progress"} pour l'utilisateur."""
     aujourd_hui = timezone.localdate()
     creneaux = list(ClassSlot.objects.filter(owner=user).select_related("course"))
-    examens = list(Exam.objects.filter(owner=user, date__gte=aujourd_hui).select_related("course"))
+    examens = list(
+        Exam.objects.filter(owner=user, date__gte=aujourd_hui).select_related("course").prefetch_related("chapters")
+    )
     cours = list(Course.objects.filter(owner=user))
 
     minutes_par_jour = defaultdict(int)
@@ -50,6 +52,23 @@ def user_plan(user, jours=HORIZON_JOURS):
     for journee in plan:
         journee.classes = sorted(creneaux_par_jour[journee.date.weekday()], key=lambda c: c.start_time)
         placer_horaires(journee, [c.end_time for c in journee.classes])
+    
+    # Épreuve proche sur des chapitres précis : le bloc du cours mène directement à ces chapitres
+    for journee in plan:
+        for bloc in journee.blocks:
+            if bloc.kind != "cours":
+                continue
+            examen = next(
+                (
+                    e for e in examens   # triés par date : la plus proche d'abord
+                    if e.course_id == bloc.course_id and e.chapitres_ids and journee.date < e.date
+                    and (e.date - journee.date).days <= PREPARATION.get(e.kind, PREPARATION["examen"])[0]
+                ),
+                None,
+            )
+            if examen:
+                bloc.chapter_id = examen.chapitres_ids[0]
+                bloc.detail = examen.chapitres_courts
 
     # Aujourd'hui : blocs cochés « Fait », et répétition espacée terminée (plus aucune question due)
     du_jour = plan[0]

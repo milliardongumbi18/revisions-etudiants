@@ -4,8 +4,9 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
 
-from courses.models import Course
+from django.utils.functional import cached_property
 
+from courses.models import Chapter, Course
 
 class Weekday(models.IntegerChoices):
     LUNDI = 0, "Lundi"
@@ -66,6 +67,10 @@ class Exam(models.Model):
     kind = models.CharField("type", max_length=10, choices=ExamKind.choices, default=ExamKind.EXAMEN)
     date = models.DateField("date de l'examen")
     title = models.CharField("intitulé", max_length=150, blank=True, help_text="Ex. Examen final, Interrogation…")
+    chapters = models.ManyToManyField(
+        Chapter, blank=True, related_name="exams", verbose_name="chapitres concernés",
+        help_text="Facultatif : ne coche rien si l'épreuve porte sur tout le cours.",
+    )
 
     class Meta:
         ordering = ["date"]
@@ -79,6 +84,22 @@ class Exam(models.Model):
     def libelle(self):
         """L'intitulé saisi, sinon le type : « Interrogation » ou « Examen »."""
         return self.title or self.get_kind_display()
+
+    @cached_property
+    def chapitres_ids(self):
+        """Chapitres concernés, dans l'ordre du cours (liste vide = tout le cours)."""
+        return [c.pk for c in sorted(self.chapters.all(), key=lambda c: (c.order, c.created_at))]
+
+    @cached_property
+    def chapitres_courts(self):
+        """« ch. 2 et 3 » : numéros des chapitres concernés dans le cours ("" = tout le cours)."""
+        if not self.chapitres_ids:
+            return ""
+        positions = {pk: n for n, pk in enumerate(self.course.chapters.values_list("pk", flat=True), start=1)}
+        numeros = [str(positions[pk]) for pk in self.chapitres_ids if pk in positions]
+        if len(numeros) > 1:
+            return "ch. " + ", ".join(numeros[:-1]) + " et " + numeros[-1]
+        return f"ch. {numeros[0]}" if numeros else ""
 
 
 class PlanCheck(models.Model):
