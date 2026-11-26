@@ -5,6 +5,11 @@ from django.urls import reverse
 from courses.models import Chapter, Course
 from quizzes.models import Question, Quiz
 from reviews.models import ReviewCard, ReviewLog
+from datetime import timedelta
+
+from django.utils import timezone
+
+from planning.models import Exam
 
 User = get_user_model()
 
@@ -41,3 +46,14 @@ class DashboardTests(TestCase):
         ReviewCard.objects.create(owner=self.awa, question=self.question)   # due aujourd'hui par défaut
         response = self.client.get(reverse("courses:list"))
         self.assertContains(response, 'class="nav-badge"')
+
+    def test_compte_a_rebours_de_la_prochaine_epreuve(self):
+        cours = Course.objects.get(owner=self.awa)
+        Exam.objects.create(owner=self.awa, course=cours, kind="interro", date=timezone.localdate() + timedelta(days=3))
+        Exam.objects.create(owner=self.awa, course=cours, kind="examen", date=timezone.localdate() + timedelta(days=20))
+        response = self.client.get(reverse("dashboard:home"))
+        self.assertContains(response, "Interrogation de Droit civil")
+        self.assertContains(response, "dans 3 jours")
+        self.assertContains(response, "tout le cours")
+        self.assertContains(response, "J-20")          # l'épreuve suivante, en petit
+        self.assertContains(response, "is-urgent")     # 3 jours ou moins : carte mise en avant

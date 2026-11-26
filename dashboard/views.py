@@ -99,6 +99,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "progression": progression,
             "plan_du_jour": planning["plan"][0],
             "prochain_examen": planning["exams"][0] if planning["exams"] else None,
+            "epreuves_suivantes": planning["exams"][1:3],   # les 2 suivantes, affichées en petit
             "etapes": etapes,
             "onboarding_fini": all(fait for _, fait, _ in etapes),
         })
