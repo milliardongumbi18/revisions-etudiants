@@ -5,7 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from courses.models import Course
+from courses.models import Chapter, Course
+from quizzes.models import Question, Quiz
 
 from .models import ClassSlot, Exam, PlanCheck
 
@@ -93,3 +94,51 @@ class PlanningViewsTests(TestCase):
     def test_intitule_ignore_si_un_cours_est_choisi(self):
         self.creneau(course=self.course_awa.pk, label="Texte inutile")
         self.assertEqual(ClassSlot.objects.get().label, "")
+
+    # ---------- Étape 13h : chapitres concernés par une épreuve ----------
+
+    def chapitre(self, cours, titre, ordre):
+        chapitre = Chapter.objects.create(course=cours, title=titre, notes="Notes", order=ordre)
+        quiz = Quiz.objects.create(chapter=chapitre)
+        Question.objects.create(quiz=quiz, kind="courte", text=f"{titre} ?", expected_answer="R", order=1)
+        return chapitre
+
+    def epreuve(self, **donnees):
+        data = {
+            "kind": "interro", "course": self.course_awa.pk, "title": "",
+            "date": (timezone.localdate() + timedelta(days=2)).isoformat(),
+        }
+        data.update(donnees)
+        return self.client.post(reverse("planning:exam_create"), data)
+
+    def test_chapitre_d_un_autre_cours_refuse(self):
+        chimie = Course.objects.create(owner=self.awa, title="Chimie")
+        response = self.epreuve(chapters=[self.chapitre(chimie, "Les atomes", 1).pk])
+        self.assertIn("chapters", response.context["form"].errors)
+        self.assertFalse(Exam.objects.exists())
+
+    def test_chapitre_d_un_autre_etudiant_refuse(self):
+        response = self.epreuve(chapters=[self.chapitre(self.course_bob, "Le labo", 1).pk])
+        self.assertIn("chapters", response.context["form"].errors)
+        self.assertFalse(Exam.objects.exists())
+
+    def test_seance_ciblee_sur_les_chapitres_de_l_epreuve(self):
+        sources = self.chapitre(self.course_awa, "Les sources", 1)
+        self.chapitre(self.course_awa, "Les personnes", 2)
+        self.epreuve(chapters=[sources.pk])
+        response = self.client.post(reverse("reviews:start_exam", args=[Exam.objects.get().pk]))
+        self.assertRedirects(response, reverse("reviews:session"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session["revision"]["total"], 1)   # seulement la question du chapitre 1
+
+    def test_seance_pour_l_epreuve_d_un_autre_impossible(self):
+        examen_bob = Exam.objects.create(owner=self.bob, course=self.course_bob, date=timezone.localdate())
+        self.assertEqual(self.client.post(reverse("reviews:start_exam", args=[examen_bob.pk])).status_code, 404)
+
+    def test_bloc_du_planning_mene_au_chapitre_de_l_epreuve(self):
+        self.chapitre(self.course_awa, "Les sources", 1)
+        personnes = self.chapitre(self.course_awa, "Les personnes", 2)
+        self.epreuve(chapters=[personnes.pk])
+        response = self.client.get(reverse("planning:home"))
+        bloc = next(b for b in response.context["today"].blocks if b.kind == "cours")
+        self.assertEqual(bloc.chapter_id, personnes.pk)
+        self.assertEqual(bloc.detail, "ch. 2")

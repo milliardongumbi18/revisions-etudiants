@@ -2,7 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from core.forms import StyledFormMixin
-from courses.models import Course
+from courses.models import Chapter, Course
 
 from .models import ClassSlot, Exam
 
@@ -42,23 +42,42 @@ class ClassSlotForm(StyledFormMixin, forms.ModelForm):
                 if chevauchement.exists():
                     self.add_error("start_time", "Ce créneau chevauche un autre cours le même jour.")
         return cleaned
+class ChapitresParCours(forms.CheckboxSelectMultiple):
+    """Cases à cocher des chapitres, chacune marquée de son cours (filtrées en JavaScript)."""
 
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        if value:
+            option["attrs"]["data-course"] = value.instance.course_id
+        return option
 
 class ExamForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Exam
-        fields = ("kind", "course", "date", "title")
+        fields = ("kind", "course", "chapters", "date", "title")
         widgets = {
+            "chapters": ChapitresParCours,
             "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "title": forms.TextInput(attrs={"placeholder": "Ex. Interro du chapitre 2 (facultatif)"}),
         }
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
+        # Sécurité : seuls MES cours et MES chapitres sont proposés (et acceptés)
         self.fields["course"].queryset = Course.objects.filter(owner=user)
+        chapitres = self.fields["chapters"]
+        chapitres.queryset = Chapter.objects.filter(course__owner=user).order_by("course__title", "order", "created_at")
+        chapitres.label_from_instance = lambda chapitre: chapitre.title
 
     def clean_date(self):
         jour = self.cleaned_data["date"]
         if jour < timezone.localdate() and not self.instance.pk:
             raise forms.ValidationError("Cette date est déjà passée.")
         return jour
+
+    def clean(self):
+        cleaned = super().clean()
+        cours, chapitres = cleaned.get("course"), cleaned.get("chapters")
+        if cours and chapitres and any(c.course_id != cours.pk for c in chapitres):
+            self.add_error("chapters", "Choisis uniquement des chapitres du cours de l'épreuve.")
+        return cleaned

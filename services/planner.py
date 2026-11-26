@@ -56,6 +56,8 @@ class Block:
     course_id: int | None = None
     start: time | None = None   # heure de début (agenda)
     done: bool = False          # coché « Fait » par l'étudiant
+    chapter_id: int | None = None   # chapitre à ouvrir (épreuve proche sur des chapitres précis)
+    detail: str = ""                # ex. « ch. 2 et 3 »
 
     @property
     def duree(self):

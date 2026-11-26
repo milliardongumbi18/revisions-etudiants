@@ -439,3 +439,31 @@
     mettreAJour();   // au chargement (ex. modification d'un créneau qui a déjà un cours)
   });
 })();
+
+/* ==========================================================================
+   Étape 13h : seuls les chapitres du cours choisi sont proposés
+   ========================================================================== */
+(() => {
+  const cours = document.getElementById("id_course");
+  const liste = document.getElementById("id_chapters");
+  if (!cours || !liste) return;
+
+  const aucun = document.createElement("p");
+  aucun.className = "help";
+  aucun.textContent = "Choisis d'abord un cours (ou ce cours n'a pas encore de chapitre).";
+  liste.after(aucun);
+
+  const filtrer = () => {
+    let visibles = 0;
+    liste.querySelectorAll("input[data-course]").forEach((caseACocher) => {
+      const garder = caseACocher.dataset.course === cours.value;
+      caseACocher.closest("div").hidden = !garder;
+      if (!garder) caseACocher.checked = false;   // un chapitre d'un autre cours ne part jamais
+      visibles += garder;
+    });
+    liste.hidden = !visibles;
+    aucun.hidden = Boolean(visibles);
+  };
+  cours.addEventListener("change", filtrer);
+  filtrer();
+})();

@@ -9,6 +9,7 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from quizzes.models import Question, Quiz
+from planning.models import Exam
 from services.sm2 import review
 
 from .models import ReviewCard, ReviewLog
@@ -101,7 +102,24 @@ class StartQuizReviewView(LoginRequiredMixin, View):
         )
         start_session(request, ids, quiz.get_absolute_url())
         return redirect("reviews:session")
+class StartExamReviewView(LoginRequiredMixin, View):
+    """Séance ciblée avant une épreuve : les questions de ses chapitres (ou de tout le cours), les plus fragiles d'abord."""
 
+    http_method_names = ["post"]
+
+    def post(self, request, exam_pk):
+        examen = get_object_or_404(Exam, pk=exam_pk, owner=request.user)   # 404 si ce n'est pas mon épreuve
+        create_missing_cards(request.user)
+        cartes = ReviewCard.objects.filter(owner=request.user, question__quiz__chapter__course=examen.course)
+        if examen.chapitres_ids:
+            cartes = cartes.filter(question__quiz__chapter__in=examen.chapitres_ids)
+        # Jamais réussies d'abord, puis les plus difficiles (facilité SM-2 basse)
+        ids = list(cartes.order_by("repetitions", "easiness", "due_date").values_list("pk", flat=True))
+        if not ids:
+            messages.info(request, "Aucune question pour cette épreuve : génère d'abord un quiz sur ses chapitres.")
+            return redirect("planning:home")
+        start_session(request, ids, reverse("planning:home"))
+        return redirect("reviews:session")
 
 class ReviewSessionView(LoginRequiredMixin, View):
     """Affiche la question en cours, sa correction (si répondue), ou le bilan final."""

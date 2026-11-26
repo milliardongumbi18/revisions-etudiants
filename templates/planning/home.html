@@ -18,16 +18,22 @@
   </div>
 
   {# ===== Examens à venir ===== #}
-  {% if exams %}
+    {% if exams %}
     <div class="animate-in mt-8 flex flex-wrap gap-3" style="--delay: 80ms">
       {% for exam in exams %}
-        <a href="{% url 'planning:exam_update' exam.pk %}" class="exam-chip" data-color="{{ exam.course.color }}">
+        <div class="exam-chip" data-color="{{ exam.course.color }}">
           <span class="exam-countdown">{% if exam.days_left == 0 %}Aujourd'hui{% else %}J-{{ exam.days_left }}{% endif %}</span>
-          <span class="min-w-0">
+          <a href="{% url 'planning:exam_update' exam.pk %}" class="exam-link min-w-0" title="Modifier l'épreuve">
             <span class="block break-words font-semibold">{{ exam.course.title }}</span>
-            <span class="text-muted block text-xs">{{ exam.libelle }} · {{ exam.date|date:"l j F" }}</span>
-          </span>
-        </a>
+            <span class="text-muted block text-xs">
+              {{ exam.libelle }} · {{ exam.date|date:"l j F" }}{% if exam.chapitres_courts %} · {{ exam.chapitres_courts }}{% endif %}
+            </span>
+          </a>
+          <form method="post" action="{% url 'reviews:start_exam' exam.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm">Réviser</button>
+          </form>
+        </div>
       {% endfor %}
     </div>
   {% endif %}
@@ -101,8 +107,9 @@
             <li class="agenda-item{% if block.done %} is-done{% endif %}">
               <span class="agenda-time">{% if block.start %}{{ block.start|time:"H:i" }}<small>{{ block.end|time:"H:i" }}</small>{% endif %}</span>
               <div class="agenda-body" data-color="{{ block.color }}">
-                <a href="{% url 'courses:detail' block.course_id %}" class="agenda-link">
-                  <p class="agenda-title">{{ block.title }}</p><p class="agenda-meta">Réviser · {{ block.duree }}</p>
+                <a href="{% if block.chapter_id %}{% url 'courses:chapter_detail' block.chapter_id %}{% else %}{% url 'courses:detail' block.course_id %}{% endif %}" class="agenda-link">
+                  <p class="agenda-title">{{ block.title }}</p>
+                  <p class="agenda-meta">Réviser{% if block.detail %} · {{ block.detail }}{% endif %} · {{ block.duree }}</p>
                 </a>
                 <form method="post" action="{% url 'planning:toggle_done' block.course_id %}">
                   {% csrf_token %}
@@ -156,7 +163,7 @@
             {% for block in day.blocks %}
               <li class="{% if block.kind == 'examen' %}is-exam{% elif block.kind == 'revisions' %}is-srs{% endif %}" data-color="{{ block.color }}">
                 <span class="agenda-time">{% if block.kind == "examen" %}🎓{% elif block.start %}{{ block.start|time:"H:i" }}{% endif %}</span>
-                <span class="min-w-0">{{ block.title }}</span>
+                <span class="min-w-0">{{ block.title }}{% if block.detail %} · {{ block.detail }}{% endif %}</span>
                 <span class="text-muted">{% if block.minutes %}{{ block.duree }}{% endif %}</span>
               </li>
             {% empty %}
