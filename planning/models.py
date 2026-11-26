@@ -54,13 +54,16 @@ class ClassSlot(models.Model):
         debut = datetime.combine(date.min, self.start_time)
         fin = datetime.combine(date.min, self.end_time)
         return int((fin - debut).total_seconds() // 60)
-
+class ExamKind(models.TextChoices):
+    INTERRO = "interro", "Interrogation"
+    EXAMEN = "examen", "Examen"
 
 class Exam(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="exams", verbose_name="propriétaire"
     )
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="exams", verbose_name="cours")
+    kind = models.CharField("type", max_length=10, choices=ExamKind.choices, default=ExamKind.EXAMEN)
     date = models.DateField("date de l'examen")
     title = models.CharField("intitulé", max_length=150, blank=True, help_text="Ex. Examen final, Interrogation…")
 
@@ -70,7 +73,12 @@ class Exam(models.Model):
         verbose_name_plural = "examens"
 
     def __str__(self):
-        return f"{self.title or 'Examen'} · {self.course} ({self.date:%d/%m/%Y})"
+        return f"{self.libelle} · {self.course} ({self.date:%d/%m/%Y})"
+
+    @property
+    def libelle(self):
+        """L'intitulé saisi, sinon le type : « Interrogation » ou « Examen »."""
+        return self.title or self.get_kind_display()
 
 
 class PlanCheck(models.Model):

@@ -5,7 +5,7 @@ from django.test import SimpleTestCase
 
 from datetime import time
 
-from .planner import Block, CourseInfo, DayPlan, ExamInfo, build_plan, charge_du_jour, placer_horaires
+from .planner import Block, CourseInfo, DayPlan, ExamInfo, build_plan, charge_du_jour, placer_horaires, poids
 
 LUNDI = date(2026, 11, 16)   # un lundi
 
@@ -55,3 +55,14 @@ class PlannerTests(SimpleTestCase):
         matin = DayPlan(date(2026, 1, 5), 120, 90, "léger", [Block("cours", "Droit", 30)])
         placer_horaires(matin, [time(10, 0)])
         self.assertEqual(matin.blocks[0].start, time(15, 0))    # jamais avant 15 h un jour de cours
+
+    def test_interro_preparee_sur_7_jours_seulement(self):
+        interro = [ExamInfo(1, date(2026, 11, 26), "Interrogation", "interro")]
+        self.assertEqual(poids(1, date(2026, 11, 16), interro), 1.0)    # J-10 : pas encore
+        self.assertGreater(poids(1, date(2026, 11, 23), interro), 1.0)  # J-3 : le cours prend du poids
+
+    def test_examen_pese_plus_qu_une_interro(self):
+        veille = date(2026, 11, 25)
+        examen = [ExamInfo(1, date(2026, 11, 26), "Examen", "examen")]
+        interro = [ExamInfo(1, date(2026, 11, 26), "Interrogation", "interro")]
+        self.assertGreater(poids(1, veille, examen), poids(1, veille, interro))

@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from courses.models import Course
 
-from .models import ClassSlot, PlanCheck
+from .models import ClassSlot, Exam, PlanCheck
 
 User = get_user_model()
 
@@ -55,7 +55,7 @@ class PlanningViewsTests(TestCase):
         jour_examen = timezone.localdate() + timedelta(days=3)
         self.client.post(
             reverse("planning:exam_create"),
-            {"course": self.course_awa.pk, "date": jour_examen.isoformat(), "title": "Partiel"},
+            {"kind": "examen", "course": self.course_awa.pk, "date": jour_examen.isoformat(), "title": "Partiel"},
         )
         response = self.client.get(reverse("planning:home"))
         self.assertEqual(response.context["plan"][3].blocks[0].kind, "examen")
@@ -80,3 +80,16 @@ class PlanningViewsTests(TestCase):
         self.assertTrue(bloc.done)
         self.assertEqual(response.context["progress"]["faits"], 1)
         self.assertContains(response, "✓ Fait")
+
+    def test_interro_enregistree_avec_son_type(self):
+        jour = timezone.localdate() + timedelta(days=2)
+        self.client.post(
+            reverse("planning:exam_create"),
+            {"kind": "interro", "course": self.course_awa.pk, "date": jour.isoformat(), "title": ""},
+        )
+        self.assertEqual(Exam.objects.get().kind, "interro")
+        self.assertContains(self.client.get(reverse("planning:home")), "Interrogation")
+
+    def test_intitule_ignore_si_un_cours_est_choisi(self):
+        self.creneau(course=self.course_awa.pk, label="Texte inutile")
+        self.assertEqual(ClassSlot.objects.get().label, "")

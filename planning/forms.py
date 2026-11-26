@@ -13,8 +13,7 @@ class ClassSlotForm(StyledFormMixin, forms.ModelForm):
         fields = ("course", "label", "weekday", "start_time", "end_time")
         widgets = {
             "label": forms.TextInput(attrs={"placeholder": "Ex. Anglais (si le cours n'est pas dans l'application)"}),
-            "start_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
-            "end_time": forms.TimeInput(attrs={"type": "time"}, format="%H:%M"),
+            "data-off-when": "id_course",   # grisé par app.js dès qu'un cours est choisi
         }
 
     def __init__(self, *args, user, **kwargs):
@@ -26,6 +25,8 @@ class ClassSlotForm(StyledFormMixin, forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        if cleaned.get("course"):
+            cleaned["label"] = ""   # un cours est choisi : l'intitulé ne sert à rien
         if not cleaned.get("course") and not (cleaned.get("label") or "").strip():
             self.add_error("label", "Choisis un cours ou saisis un intitulé.")
 
@@ -46,10 +47,10 @@ class ClassSlotForm(StyledFormMixin, forms.ModelForm):
 class ExamForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Exam
-        fields = ("course", "date", "title")
+        fields = ("kind", "course", "date", "title")
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-            "title": forms.TextInput(attrs={"placeholder": "Ex. Examen final"}),
+            "title": forms.TextInput(attrs={"placeholder": "Ex. Interro du chapitre 2 (facultatif)"}),
         }
 
     def __init__(self, *args, user, **kwargs):

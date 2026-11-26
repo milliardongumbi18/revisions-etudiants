@@ -100,15 +100,15 @@ class SlotDeleteView(OwnedMixin, SuccessMessageMixin, DeleteView):
 class ExamCreateView(OwnedFormMixin, CreateView):
     model = Exam
     form_class = ExamForm
-    titre = "Ajouter un examen"
-    success_message = "Examen ajouté : le planning en tient compte."
+    titre = "Ajouter une interro ou un examen"
+    success_message = "Épreuve ajoutée : le planning en tient compte."
 
 
 class ExamUpdateView(OwnedFormMixin, UpdateView):
     model = Exam
     form_class = ExamForm
-    titre = "Modifier l'examen"
-    success_message = "Examen mis à jour."
+    titre = "Modifier l'épreuve"
+    success_message = "Épreuve mise à jour."
 
     def get_delete_url(self):
         return reverse("planning:exam_delete", args=[self.object.pk])
@@ -117,11 +117,11 @@ class ExamUpdateView(OwnedFormMixin, UpdateView):
 class ExamDeleteView(OwnedMixin, SuccessMessageMixin, DeleteView):
     model = Exam
     template_name = "courses/confirm_delete.html"
-    success_message = "Examen supprimé."
+    success_message = "Épreuve supprimée."
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["warning"] = "Le planning ne tiendra plus compte de cet examen."
+        context["warning"] = "Le planning ne tiendra plus compte de cette épreuve."
         context["cancel_url"] = reverse("planning:exam_update", args=[self.object.pk])
         return context
     

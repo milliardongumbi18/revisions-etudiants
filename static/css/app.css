@@ -1723,3 +1723,11 @@
   /* Le nom du jour prend toute la place libre : durée et badge partent à droite, avant la flèche */
   .agenda-day > summary > :first-child { flex: 1; }
 }
+/* ==========================================================================
+   Ajouts étape 13g : champ grisé
+   ========================================================================== */
+@layer components {
+  .field { transition: opacity .2s var(--ease-out); }
+  .field.is-off { opacity: .45; }
+  .field.is-off .input { cursor: not-allowed; }
+}

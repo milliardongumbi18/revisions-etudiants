@@ -14,7 +14,8 @@ from datetime import date, datetime, time, timedelta
 
 BLOC = 30                 # minutes
 HORIZON_JOURS = 14
-FENETRE_EXAMEN = 21       # un examen commence à peser 21 jours avant
+# Type d'épreuve → (jours de préparation, poids ajouté la veille)
+PREPARATION = {"examen": (21, 7), "interro": (7, 3)}
 
 DEBUT_JOUR_LIBRE = time(9, 0)     # jour sans cours : on révise le matin
 DEBUT_APRES_COURS = time(15, 0)   # jour de cours : jamais avant 15 h
@@ -43,6 +44,7 @@ class ExamInfo:
     course_id: int
     date: date
     title: str = "Examen"
+    kind: str = "examen"    # "examen" ou "interro"
 
 
 @dataclass
@@ -100,12 +102,18 @@ def charge_du_jour(minutes_de_cours):
 
 
 def poids(course_id, jour, exams):
-    """1 par défaut ; jusqu'à ~8 la veille de l'examen (montée progressive sur 21 jours)."""
-    prochains = [e.date for e in exams if e.course_id == course_id and e.date > jour]
-    if not prochains:
-        return 1.0
-    ecart = (min(prochains) - jour).days
-    return 1.0 + max(0, FENETRE_EXAMEN + 1 - ecart) / 3
+    """
+    1 par défaut ; monte à l'approche d'une épreuve de ce cours :
+    jusqu'à 8 la veille d'un examen (sur 21 jours), jusqu'à 4 la veille d'une interro (sur 7 jours).
+    """
+    meilleur = 1.0
+    for examen in exams:
+        if examen.course_id != course_id or examen.date <= jour:
+            continue
+        fenetre, pic = PREPARATION.get(examen.kind, PREPARATION["examen"])
+        ecart = (examen.date - jour).days
+        meilleur = max(meilleur, 1.0 + pic * max(0, fenetre + 1 - ecart) / fenetre)
+    return meilleur
 
 
 def build_plan(debut, courses, minutes_par_jour_semaine, exams, revisions_par_date=None, jours=HORIZON_JOURS):
