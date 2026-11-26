@@ -17,9 +17,12 @@
       <ul class="import-steps mt-6">
         <li><span class="step-dot">1</span><span><strong>Word</strong> : un chapitre par titre (styles « Titre 1 », « Titre 2 »…).</span></li>
         <li><span class="step-dot">2</span><span><strong>PowerPoint</strong> : un chapitre par section. <strong>PDF avec signets</strong> : un chapitre par signet.</span></li>
-        <li><span class="step-dot">3</span><span><strong>Sans structure</strong> : un chapitre « Cours complet », découpé en parties s'il est très long.</span></li>
+        <li><span class="step-dot">3</span><span><strong>Sans structure</strong> : découpé selon le <strong>plan de ton cours</strong>, sinon selon les titres « Chapitre 1 », « Partie 2 »… repérés dans le texte.</span></li>
         <li><span class="step-dot">4</span><span>Tu pourras ensuite <strong>renommer, corriger ou supprimer</strong> chaque chapitre.</span></li>
       </ul>
+            {% if not course.outline %}
+        <p class="help mt-4">💡 Astuce : <a href="{% url 'courses:update' course.pk %}" class="underline">ajoute le plan de ton cours</a> (une partie par ligne) pour un découpage plus précis.</p>
+      {% endif %}
 
       {# enctype obligatoire : sans lui, le navigateur n'envoie PAS le fichier #}
       <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-5" data-auth-form novalidate>

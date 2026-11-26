@@ -7,7 +7,7 @@ from django.core.validators import MaxLengthValidator
 from core.forms import StyledFormMixin
 from services.documents import (
     MAX_TEXT_CHARS, MAX_UPLOAD_SIZE, DocumentError, extract_text_from_upload, split_document,)
-
+from services.chapter_detector import detecter_titres
 from .models import Chapter, Course
 
 ACCEPT_FICHIERS = (
@@ -88,10 +88,14 @@ class CourseImportForm(StyledFormMixin, forms.Form):
         widget=forms.FileInput(attrs={"class": "sr-only", "accept": ACCEPT_FICHIERS}),
     )
 
+    def __init__(self, *args, plan="", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plan = plan   # plan du cours, utilisé pour découper un fichier sans structure
+
     def clean_fichier(self):
         fichier = self.cleaned_data["fichier"]
         try:
-            self.sections = split_document(fichier)   # [(titre, texte), ...]
+            self.sections = split_document(fichier, plan=self.plan, ia=detecter_titres)   # [(titre, texte), ...]
         except DocumentError as error:
             raise forms.ValidationError(str(error))
         return fichier
