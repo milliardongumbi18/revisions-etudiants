@@ -114,6 +114,8 @@ class FakeProvider(AIProvider):
     def generate_json(self, prompt, schema):
         if "texte" in schema.get("properties", {}):   # mise en forme de notes
             return {"texte": "Introduction\n\nTexte de démonstration mis en forme."}
+        if "titres" in schema.get("properties", {}):   # découpage d'un cours : aucun titre en démo
+            return {"titres": []}
 
         qcm = [
             {

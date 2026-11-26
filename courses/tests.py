@@ -141,6 +141,19 @@ class CourseImportTests(CourseTestCase):
         self.assertEqual(response.status_code, 404)
         self.assertFalse(self.course_bob.chapters.exists())
     
+    @override_settings(AI_PROVIDER="fake")
+    def test_import_decoupe_selon_le_plan_du_cours(self):
+        self.course_awa.outline = "Les sources du droit\nLes personnes"
+        self.course_awa.save()
+        texte = "\n".join([
+            "LES SOURCES DU DROIT", "La loi est votée par le Parlement. " * 10,
+            "LES PERSONNES", "Toute personne a des droits. " * 10,
+        ])
+        url = reverse("courses:import", args=[self.course_awa.pk])
+        self.client.post(url, {"fichier": SimpleUploadedFile("cours.txt", texte.encode("utf-8"))})
+        titres = list(self.course_awa.chapters.values_list("title", flat=True))
+        self.assertEqual(titres, ["Les sources du droit", "Les personnes"])
+    
 
 class DictationTests(CourseTestCase):
     def test_formulaire_chapitre_propose_la_dictee_sur_les_notes(self):

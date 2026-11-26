@@ -68,8 +68,6 @@ class CourseDetailView(OwnedCourseMixin, DetailView):
         context["chapters"] = self.object.chapters.all()
         context["progression"] = progression_cours(self.request.user, self.object)
         return context
-
-
 class CourseUpdateView(OwnedCourseMixin, SuccessMessageMixin, UpdateView):
     form_class = CourseForm
     success_message = "Cours mis à jour."
@@ -103,6 +101,11 @@ class CourseImportView(LoginRequiredMixin, FormView):
         context = super().get_context_data(**kwargs)
         context["course"] = self.course
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["plan"] = self.course.outline   # le formulaire découpe selon le plan du cours
+        return kwargs
 
     def form_valid(self, form):
         debut = prochaine_position(self.course)

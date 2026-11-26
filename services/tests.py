@@ -198,3 +198,44 @@ class OfficeDocumentsTests(SimpleTestCase):
     def test_ancien_format_explique(self):
         with self.assertRaisesMessage(DocumentError, "enregistre ton fichier en .docx"):
             extract_text_from_upload(SimpleUploadedFile("cours.doc", b"\xd0\xcf\x11\xe0"))
+
+
+def cours_txt(*lignes):
+    return SimpleUploadedFile("cours.txt", "\n".join(lignes).encode("utf-8"))
+
+
+PARAGRAPHE = "Texte du cours sur ce point précis. " * 15   # environ 540 caractères
+
+
+class DecoupageTexteTests(SimpleTestCase):
+    PLAN = "Chapitre 1 : Les sources du droit\n  1.1 La loi\nChapitre 2 : Les personnes"
+
+    def test_decoupe_selon_le_plan_en_ignorant_le_sommaire(self):
+        fichier = cours_txt(
+            "SOMMAIRE", "Chapitre 1 : Les sources du droit", "Chapitre 2 : Les personnes",   # le sommaire
+            "CHAPITRE I. LES SOURCES DU DROIT", PARAGRAPHE,
+            "CHAPITRE II. LES PERSONNES", PARAGRAPHE,
+        )
+        chapitres = split_document(fichier, plan=self.PLAN)
+        self.assertEqual([t for t, _ in chapitres], ["Chapitre 1 : Les sources du droit", "Chapitre 2 : Les personnes"])
+        self.assertIn("Texte du cours", chapitres[0][1])
+
+    def test_sans_plan_titres_chapitre_detectes(self):
+        fichier = cours_txt("Chapitre 1", "Les sources", PARAGRAPHE, "Chapitre 2", "Les personnes", PARAGRAPHE)
+        self.assertEqual(
+            [t for t, _ in split_document(fichier)], ["Chapitre 1 — Les sources", "Chapitre 2 — Les personnes"]
+        )
+
+    def test_ia_en_dernier_recours_sans_inventer_de_titre(self):
+        long_texte = PARAGRAPHE * 20
+        fichier = cours_txt("Notes de cours", "Les obligations", long_texte, "La responsabilité", long_texte)
+        ia = lambda candidats: [1, 3, 999]   # 999 n'existe pas : ignoré
+        self.assertEqual([t for t, _ in split_document(fichier, ia=ia)], ["Les obligations", "La responsabilité"])
+
+    def test_ia_en_panne_le_cours_est_importe_quand_meme(self):
+        def ia_en_panne(candidats):
+            raise RuntimeError("quota dépassé")
+
+        long_texte = PARAGRAPHE * 20
+        fichier = cours_txt("Les obligations", long_texte, "La responsabilité", long_texte)
+        self.assertEqual([t for t, _ in split_document(fichier, ia=ia_en_panne)], ["Cours complet"])

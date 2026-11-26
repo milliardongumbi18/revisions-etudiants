@@ -7,6 +7,7 @@ Aucune dépendance à Django ici : facile à tester et réutilisable
 """
 import posixpath
 import re
+import unicodedata
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree
@@ -43,6 +44,20 @@ STYLE_TITRE = re.compile(r"^(?:heading|titre)\s*([1-9])$", re.IGNORECASE)   # «
 DIAPO = re.compile(r"^ppt/slides/slide\d+\.xml$")
 MIN_INTRODUCTION = 200   # en dessous, le texte avant le 1er titre est une simple page de garde
 
+# Découpage d'un texte sans structure (étape 13f)
+MIN_SECTION = 200          # un chapitre de moins de 200 caractères = sans doute une ligne du sommaire
+MIN_TEXTE_IA = 15_000      # en dessous, inutile de découper (et d'utiliser l'IA)
+MAX_CANDIDATS_IA = 800     # lignes envoyées à l'IA au maximum
+SOMMAIRE = re.compile(r"(\.{3,}|…|_{3,}|\s{4,}|\t)\s*\d{1,4}\s*$")   # « Les sources ........ 12 »
+NUMEROTATION = re.compile(   # « chapitre 1 », « partie ii », « 3 », « b »… en tête de titre (texte déjà normalisé)
+    r"^(?:(?:chapitre|chap|partie|titre|section|lecon|module|theme|unite|sequence)\s+)?"
+    r"(?:\d+|(?=[ivx])x{0,3}(?:ix|iv|v?i{0,3})|premier|premiere|[a-z])\s+(?=\S)"
+)
+MOT_CHAPITRE = re.compile(
+    r"^\s*(chapitre|partie|le[cç]on|module|th[eè]me|unit[eé]|s[eé]quence)\s+(\d+|[IVXLC]+|premi[eè]re?)\b",
+    re.IGNORECASE,
+)
+
 
 class DocumentError(Exception):
     """Erreur compréhensible par l'étudiant (affichée sous le champ fichier)."""
@@ -75,29 +90,34 @@ def extract_text_from_upload(uploaded_file):
     return text
 
 
-def split_document(uploaded_file):
+def split_document(uploaded_file, plan="", ia=None):
     """
     Import d'un COURS COMPLET : renvoie une liste de (titre, texte), un élément par chapitre.
-    - PDF avec signets : un chapitre par signet de premier niveau.
-    - Word : un chapitre par titre (style « Titre 1 », sinon « Titre 2 »…).
-    - PowerPoint : un chapitre par section.
-    - Sinon : un chapitre « Cours complet ».
-    - Tout chapitre trop long est découpé en « … — partie 1, 2, 3 ».
+
+    1. La structure du fichier, si elle existe : signets du PDF, titres Word, sections PowerPoint.
+    2. Sinon, le texte est découpé (voir _decouper_texte) :
+       selon le PLAN du cours, puis selon les titres « Chapitre 1 », « Partie 2 »…,
+       et en dernier recours avec `ia`, une fonction qui choisit les titres parmi les lignes.
+    3. Rien trouvé : un chapitre « Cours complet ».
+    Tout chapitre trop long est découpé en « … — partie 1, 2, 3 ».
     """
     extension = _check_upload(uploaded_file)
     if extension == ".pdf":
         reader = _open_pdf(uploaded_file)
         pages = [_clean(texte) for texte in _page_texts(reader)]
-        sections = _sections_from_bookmarks(reader, pages) or [("Cours complet", pages)]
+        sections = _sections_from_bookmarks(reader, pages) or _decouper_texte("\n\n".join(pages), plan, ia)
     elif extension == ".docx":
         paragraphes = _docx_paragraphs(_open_office(uploaded_file, ".docx"))
-        sections = _sections_from_headings(paragraphes) or [("Cours complet", [t for _, t in paragraphes])]
+        sections = _sections_from_headings(paragraphes) or _decouper_texte(
+            "\n\n".join(t for _, t in paragraphes), plan, ia
+        )
     elif extension == ".pptx":
         presentation, diapos = _pptx_slides(_open_office(uploaded_file, ".pptx"))
-        sections = _sections_from_pptx(presentation, diapos) or [("Cours complet", [t for _, t in diapos])]
+        sections = _sections_from_pptx(presentation, diapos) or _decouper_texte(
+            "\n\n".join(t for _, t in diapos), plan, ia
+        )
     else:
-        texte = _clean(_read_txt(uploaded_file))
-        sections = [("Cours complet", texte.split("\n\n"))]   # blocs = paragraphes
+        sections = _decouper_texte(_clean(_read_txt(uploaded_file)), plan, ia)
     uploaded_file.seek(0)
 
     chapitres = []
@@ -394,6 +414,160 @@ def _sections_from_pptx(presentation, diapos):
         if nom and blocs:
             sections.append((nom, blocs))
     return sections if len(sections) >= 2 else []
+# ================= Découpage d'un texte sans structure (13f) ================
+
+def _decouper_texte(texte, plan="", ia=None):
+    """Plan du cours → titres « Chapitre 1 »… → IA (dernier recours) → un seul chapitre."""
+    lignes = texte.split("\n")
+    debuts = _debuts_selon_plan(lignes, plan) or _debuts_par_motifs(lignes)
+    if not debuts and ia is not None and len(texte) >= MIN_TEXTE_IA:
+        debuts = _debuts_par_ia(lignes, ia)
+    if debuts:
+        return _sections_par_lignes(lignes, debuts)
+    return [("Cours complet", texte.split("\n\n"))]
+
+
+def _normaliser(texte):
+    """« CHAPITRE I. Les Sources du Droit » → « chapitre i les sources du droit » (sans accents ni ponctuation)."""
+    texte = unicodedata.normalize("NFKD", texte)
+    texte = "".join(c for c in texte if not unicodedata.combining(c)).lower()
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", texte).split())
+
+
+def _cle(ligne):
+    """Ce qui permet de comparer deux titres : texte normalisé, sans la numérotation de tête."""
+    return NUMEROTATION.sub("", _normaliser(ligne))
+
+
+def _ressemble_a_un_titre(ligne):
+    """Ligne courte, qui n'est ni une ligne de sommaire ni la fin d'une phrase."""
+    ligne = ligne.strip()
+    return 3 <= len(ligne) <= 120 and not SOMMAIRE.search(ligne) and not ligne.endswith((".", ",", ";"))
+
+
+def _taille(lignes, debuts, index):
+    """Nombre de caractères du chapitre n° index (de son titre exclu jusqu'au titre suivant)."""
+    fin = debuts[index + 1][0] if index + 1 < len(debuts) else len(lignes)
+    return sum(len(ligne.strip()) for ligne in lignes[debuts[index][0] + 1 : fin])
+
+
+def _petits(lignes, debuts):
+    """Indices des chapitres presque vides (signe qu'on est tombé sur le sommaire)."""
+    return [i for i in range(len(debuts)) if _taille(lignes, debuts, i) < MIN_SECTION]
+
+
+def _valides(lignes, debuts):
+    """Au moins 2 chapitres, et aucun presque vide (seul le dernier, une courte conclusion, est toléré)."""
+    return len(debuts) >= 2 and all(i == len(debuts) - 1 for i in _petits(lignes, debuts))
+
+
+def _entrees_du_plan(plan):
+    """Lignes de 1er niveau du plan : on saute les sous-parties (indentées, « 1.2 », « a) »)."""
+    for ligne in (plan or "").splitlines():
+        if not ligne.strip() or re.match(r"^(\s{2,}|\t)", ligne) or re.match(r"^\s*(\d+\.\d+|[a-z]\))", ligne):
+            continue
+        yield ligne.strip()
+
+
+def _debuts_selon_plan(lignes, plan):
+    """[(numéro de ligne, titre du plan)] : chaque partie du plan est cherchée dans l'ordre."""
+    entrees = [(entree[:200], cle) for entree in _entrees_du_plan(plan) if len(cle := _cle(entree)) >= 4]
+    if len(entrees) < 2:
+        return []
+    cles_lignes = [_cle(ligne) if _ressemble_a_un_titre(ligne) else None for ligne in lignes]
+
+    depart = 0
+    for _ in range(3):   # 3 essais : le 1er tombe parfois sur le sommaire du début
+        debuts, position = [], depart
+        for titre, cle in entrees:
+            for numero in range(position, len(lignes)):
+                cle_ligne = cles_lignes[numero]
+                if cle_ligne and (cle_ligne == cle or cle_ligne.startswith(cle + " ")):
+                    debuts.append((numero, titre))
+                    position = numero + 1
+                    break
+        if _valides(lignes, debuts):
+            return debuts
+        petits = _petits(lignes, debuts)
+        if not petits:
+            return []
+        depart = debuts[petits[-1]][0] + 1   # on recommence après le sommaire
+    return []
+
+
+def _numero(texte):
+    """« 3 » → 3, « IV » → 4, « première » → 1."""
+    texte = texte.lower()
+    if texte.isdigit():
+        return int(texte)
+    if texte.startswith("premi"):
+        return 1
+    valeurs, total = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100}, 0
+    for index, lettre in enumerate(texte):
+        valeur = valeurs[lettre]
+        total += -valeur if index + 1 < len(texte) and valeurs[texte[index + 1]] > valeur else valeur
+    return total
+
+
+def _debuts_par_motifs(lignes):
+    """Titres explicites : « Chapitre 1 », « PARTIE II », « Leçon 3 »… (le mot le plus fréquent l'emporte)."""
+    trouves = {}   # mot → [(numéro de ligne, numéro du chapitre)]
+    for numero, ligne in enumerate(lignes):
+        motif = MOT_CHAPITRE.match(ligne)
+        if motif and _ressemble_a_un_titre(ligne):
+            mot = _normaliser(motif.group(1))
+            trouves.setdefault(mot, []).append((numero, _numero(motif.group(2))))
+    if not trouves:
+        return []
+    lignes_trouvees = max(trouves.values(), key=len)
+
+    # Le sommaire liste « Chapitre 1, 2, 3 » avant le vrai « Chapitre 1 » : on garde la dernière série
+    premier = lignes_trouvees[0][1]
+    reprises = [i for i, (_, n) in enumerate(lignes_trouvees) if n == premier]
+    lignes_trouvees = lignes_trouvees[reprises[-1]:]
+
+    debuts = []
+    for numero, _ in lignes_trouvees:
+        titre = lignes[numero].strip()
+        suivante = next((l.strip() for l in lignes[numero + 1 : numero + 3] if l.strip()), "")
+        # « Chapitre 1 » seul sur sa ligne, son nom juste en dessous → « Chapitre 1 — Les sources »
+        if len(titre) <= 20 and suivante and _ressemble_a_un_titre(suivante):
+            titre = f"{titre} — {suivante}"
+        debuts.append((numero, titre[:200]))
+    return debuts if _valides(lignes, debuts) else []
+
+
+def _debuts_par_ia(lignes, ia):
+    """
+    Dernier recours : `ia` reçoit les lignes courtes [(numéro, ligne)] et renvoie les numéros des titres.
+    On ne garde que des numéros proposés ET existants : l'IA ne peut pas inventer de titre.
+    """
+    candidats = [
+        (numero, ligne.strip())
+        for numero, ligne in enumerate(lignes)
+        if _ressemble_a_un_titre(ligne) and len(ligne.strip()) <= 80 and ligne.strip()[0].isupper()
+    ][:MAX_CANDIDATS_IA]
+    if len(candidats) < 2:
+        return []
+    permis = dict(candidats)
+    try:
+        numeros = ia(candidats)
+    except Exception:   # l'IA est un bonus : si elle échoue, on importe quand même (un seul chapitre)
+        return []
+    debuts = [(n, permis[n][:200]) for n in sorted({n for n in numeros if isinstance(n, int)}) if n in permis]
+    return debuts if _valides(lignes, debuts) else []
+
+
+def _sections_par_lignes(lignes, debuts):
+    """[(numéro de ligne, titre)] → [(titre, blocs)], avec une « Introduction » s'il y a du texte avant."""
+    sections = []
+    avant = "\n".join(lignes[: debuts[0][0]]).strip()
+    if len(avant) >= MIN_INTRODUCTION:
+        sections.append(("Introduction", avant.split("\n\n")))
+    for index, (numero, titre) in enumerate(debuts):
+        fin = debuts[index + 1][0] if index + 1 < len(debuts) else len(lignes)
+        sections.append((titre, "\n".join(lignes[numero + 1 : fin]).split("\n\n")))
+    return sections
 
 
 def _pack(titre, blocs):
