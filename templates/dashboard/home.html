@@ -122,14 +122,14 @@
       <div class="grid content-start gap-6">
         <div data-reveal>
           <article class="card" {% if prochain_examen %}data-color="{{ prochain_examen.course.color }}"{% endif %}>
-            <h2 class="text-lg font-bold">Prochain examen</h2>
+            <h2 class="text-lg font-bold">Prochaine épreuve</h2>
             {% if prochain_examen %}
               <p class="exam-big mt-3">{% if prochain_examen.days_left == 0 %}Aujourd'hui{% else %}J-{{ prochain_examen.days_left }}{% endif %}</p>
               <p class="mt-2 break-words font-semibold">{{ prochain_examen.course.title }}</p>
-              <p class="text-muted text-sm">{{ prochain_examen.title|default:"Examen" }} · {{ prochain_examen.date|date:"l j F" }}</p>
+              <p class="text-muted text-sm">{{ prochain_examen.libelle }} · {{ prochain_examen.date|date:"l j F" }}</p>
             {% else %}
-              <p class="text-muted mt-2 text-sm">Aucun examen prévu.</p>
-              <a href="{% url 'planning:exam_create' %}" class="btn btn-ghost btn-sm mt-4">+ Ajouter un examen</a>
+              <p class="text-muted mt-2 text-sm">Aucune interro ni examen prévu.</p>
+              <a href="{% url 'planning:exam_create' %}" class="btn btn-ghost btn-sm mt-4">+ Ajouter une épreuve</a>
             {% endif %}
           </article>
         </div>

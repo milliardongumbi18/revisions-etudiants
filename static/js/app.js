@@ -420,3 +420,22 @@
     );
   });
 })();
+
+/* ==========================================================================
+   Étape 13g : champ grisé quand un autre est rempli
+   (ex. l'intitulé d'un créneau devient inutile dès qu'un cours est choisi)
+   ========================================================================== */
+(() => {
+  document.querySelectorAll("[data-off-when]").forEach((champ) => {
+    const source = document.getElementById(champ.dataset.offWhen);
+    if (!source) return;
+    const bloc = champ.closest(".field");
+    const mettreAJour = () => {
+      const inutile = Boolean(source.value);
+      champ.disabled = inutile;   // un champ désactivé n'est pas envoyé ni vérifié
+      bloc?.classList.toggle("is-off", inutile);
+    };
+    source.addEventListener("change", mettreAJour);
+    mettreAJour();   // au chargement (ex. modification d'un créneau qui a déjà un cours)
+  });
+})();

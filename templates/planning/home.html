@@ -13,7 +13,7 @@
     </div>
     <div class="flex flex-wrap gap-2">
       <a href="{% url 'planning:slot_create' %}" class="btn btn-ghost">+ Créneau de cours</a>
-      <a href="{% url 'planning:exam_create' %}" class="btn btn-primary">+ Examen</a>
+      <a href="{% url 'planning:exam_create' %}" class="btn btn-primary">+ Interro / examen</a>
     </div>
   </div>
 
@@ -25,7 +25,7 @@
           <span class="exam-countdown">{% if exam.days_left == 0 %}Aujourd'hui{% else %}J-{{ exam.days_left }}{% endif %}</span>
           <span class="min-w-0">
             <span class="block break-words font-semibold">{{ exam.course.title }}</span>
-            <span class="text-muted block text-xs">{{ exam.title|default:"Examen" }} · {{ exam.date|date:"l j F" }}</span>
+            <span class="text-muted block text-xs">{{ exam.libelle }} · {{ exam.date|date:"l j F" }}</span>
           </span>
         </a>
       {% endfor %}

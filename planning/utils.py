@@ -41,7 +41,7 @@ def user_plan(user, jours=HORIZON_JOURS):
         aujourd_hui,
         [CourseInfo(c.pk, c.title, c.color) for c in cours],
         dict(minutes_par_jour),
-        [ExamInfo(e.course_id, e.date, e.title or "Examen") for e in examens],
+        [ExamInfo(e.course_id, e.date, e.libelle, e.kind) for e in examens],
         dict(revisions),
         jours=jours,
     )
