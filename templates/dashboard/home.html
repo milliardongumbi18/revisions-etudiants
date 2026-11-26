@@ -148,7 +148,7 @@
                     <div class="progress progress-course mt-2" style="--value: {{ ligne.pourcentage }}%"><span></span></div>
                     <p class="text-muted mt-1 text-xs">
                       {% if ligne.total %}
-                        {{ ligne.maitrisees }}/{{ ligne.total }} maîtrisées{% if ligne.reussite is not None %} · {{ ligne.reussite }} % de bonnes réponses{% endif %}
+                        {{ ligne.total }} question{{ ligne.total|pluralize }} · acquis à {{ ligne.pourcentage }} %{% if ligne.reussite is not None %} · {{ ligne.reussite }} % de bonnes réponses{% endif %}
                       {% else %}
                         {{ ligne.course.nb_chapitres }} chapitre{{ ligne.course.nb_chapitres|pluralize }} · génère un quiz pour suivre ta progression
                       {% endif %}

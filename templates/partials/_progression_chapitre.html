@@ -5,10 +5,10 @@
     {% if r.questions %}
       <div class="card mt-5">
         <div class="flex items-baseline justify-between gap-3">
-          <span class="font-semibold">{{ r.maitrise }} % maîtrisé</span>
+          <span class="font-semibold">{{ r.acquis }} % acquis</span>
           <span class="text-muted text-sm">{{ r.questions }} question{{ r.questions|pluralize }}</span>
         </div>
-        <div class="progress progress-course mt-3" style="--value: {{ r.maitrise }}%"><span></span></div>
+        <div class="progress progress-course mt-3" style="--value: {{ r.acquis }}%"><span></span></div>
       </div>
     {% else %}
       <p class="text-muted mt-3">Génère un quiz puis révise-le pour suivre ta progression.</p>

@@ -13,6 +13,7 @@ from planning.utils import user_plan
 from quizzes.models import Quiz
 from reviews.models import ReviewCard, ReviewLog
 from reviews.session import create_missing_cards
+from reviews.stats import points_acquis, pourcentage_acquis
 from services.stats import compute_streak
 
 MAITRISE_JOURS = 21    # une question programmée à 21 jours ou plus est « maîtrisée »
@@ -58,7 +59,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             .values(course_id=F("question__quiz__chapter__course_id"))
             .annotate(
                 total=Count("id"),
-                maitrisees=Count("id", filter=Q(interval__gte=MAITRISE_JOURS)),
+                points=points_acquis(),
                 revues=Sum("review_count"),
                 justes=Sum("correct_count"),
             )
@@ -66,13 +67,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         progression = []
         for cours in Course.objects.filter(owner=user).annotate(nb_chapitres=Count("chapters")):
             ligne = par_cours.get(cours.pk, {})
-            total, maitrisees = ligne.get("total", 0), ligne.get("maitrisees", 0)
+            total = ligne.get("total", 0)
             revues, justes = ligne.get("revues") or 0, ligne.get("justes") or 0
             progression.append({
                 "course": cours,
                 "total": total,
-                "maitrisees": maitrisees,
-                "pourcentage": round(100 * maitrisees / total) if total else 0,
+                "pourcentage": pourcentage_acquis(ligne.get("points"), total),
                 "reussite": round(100 * justes / revues) if revues else None,
             })
 
