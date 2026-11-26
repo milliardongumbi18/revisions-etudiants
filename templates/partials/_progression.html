@@ -6,9 +6,10 @@
     <div class="card mt-5">
       <div class="flex items-baseline justify-between gap-3">
         <span class="font-semibold">Tout le cours</span>
-        <span class="text-muted text-sm">{{ prog.resume.maitrise }} % maîtrisé</span>
+        <span class="text-muted text-sm">{{ prog.resume.acquis }} % acquis</span>
       </div>
-      <div class="progress progress-course mt-3" style="--value: {{ prog.resume.maitrise }}%"><span></span></div>
+      <div class="progress progress-course mt-3" style="--value: {{ prog.resume.acquis }}%"><span></span></div>
+      <p class="text-muted mt-3 text-xs">Chaque bonne réponse fait avancer la barre. Une question est acquise après 3 bonnes réponses espacées ; une erreur la fait redescendre.</p>
     </div>
 
     <ul class="mt-4 grid gap-3">
@@ -17,9 +18,9 @@
           <a href="{{ c.chapter.get_absolute_url }}" class="chapter-stat">
             <span class="flex items-baseline justify-between gap-3">
               <span class="line-clamp-2 min-w-0 break-words font-semibold">{{ c.chapter.title }}</span>
-              <span class="text-muted shrink-0 text-sm">{% if c.questions %}{{ c.maitrise }} % maîtrisé{% else %}Pas encore de quiz{% endif %}</span>
+              <span class="text-muted shrink-0 text-sm">{% if c.questions %}{{ c.acquis }} % acquis{% else %}Pas encore de quiz{% endif %}</span>
             </span>
-            <div class="progress progress-course" style="--value: {{ c.maitrise }}%"><span></span></div>
+            <div class="progress progress-course" style="--value: {{ c.acquis }}%"><span></span></div>
           </a>
         </li>
       {% endfor %}

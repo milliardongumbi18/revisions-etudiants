@@ -158,19 +158,21 @@ class ProgressionTests(CourseTestCase):
             for n in (1, 2)
         ]
         # 1 carte maîtrisée sur 2 (50 %), 3 bonnes réponses sur 4 (75 %)
-        carte = ReviewCard.objects.create(owner=self.awa, question=questions[0], interval=30, review_count=4, correct_count=3)
+        carte = ReviewCard.objects.create(
+            owner=self.awa, question=questions[0], interval=30, repetitions=3, review_count=4, correct_count=3
+        )   # question acquise : 3 points sur 3
         ReviewCard.objects.create(owner=self.awa, question=questions[1])
         ReviewLog.objects.create(owner=self.awa, card=carte, grade=4, correct=True)
 
     def test_page_du_cours_affiche_la_progression_par_chapitre(self):
         response = self.client.get(reverse("courses:detail", args=[self.course_awa.pk]))
         self.assertContains(response, "Progression")
-        self.assertContains(response, "50 % maîtrisé")
+        self.assertContains(response, "50 % acquis")
         self.assertNotContains(response, "<polyline")   # plus de courbe : seulement des barres
 
     def test_page_du_chapitre_affiche_une_progression_simple(self):
         response = self.client.get(reverse("courses:chapter_detail", args=[self.chapitre.pk]))
-        self.assertContains(response, "50 % maîtrisé")
+        self.assertContains(response, "50 % acquis")
         self.assertContains(response, "2 questions")
 
     def test_chapitre_sans_quiz_l_indique(self):
@@ -178,6 +180,10 @@ class ProgressionTests(CourseTestCase):
         response = self.client.get(reverse("courses:detail", args=[self.course_awa.pk]))
         self.assertContains(response, "Pas encore de quiz")
 
+    def test_une_bonne_reponse_fait_deja_avancer_la_barre(self):
+        ReviewCard.objects.filter(owner=self.awa, repetitions=0).update(repetitions=1)
+        response = self.client.get(reverse("courses:chapter_detail", args=[self.chapitre.pk]))
+        self.assertContains(response, "67 % acquis")   # (3 + 1) points sur 6 possibles
 
 @override_settings(AI_PROVIDER="fake")
 class FormatNotesTests(CourseTestCase):

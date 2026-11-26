@@ -1,29 +1,28 @@
 """Statistiques de progression d'un cours ou d'un chapitre, pour l'étudiant connecté."""
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, F, Sum, Value
+from django.db.models.functions import Least
 
 from .models import ReviewCard
 
-MAITRISE_JOURS = 21   # même seuil que le tableau de bord : revue dans 21 jours ou plus = maîtrisée
+ETAPES_ACQUIS = 3   # 3 bonnes réponses d'affilée, espacées (1 j, 6 j, ~2 semaines) = question acquise
 
 
-def _pourcentage(part, total):
-    return round(100 * part / total) if total else None
+def points_acquis():
+    """
+    Expression SQL : chaque question rapporte de 0 à 3 points, ses bonnes réponses d'affilée
+    (champ SM-2 « repetitions », remis à 0 après une erreur). Least = le plus petit des deux.
+    """
+    return Sum(Least("repetitions", Value(ETAPES_ACQUIS)))
+
+
+def pourcentage_acquis(points, questions):
+    """Points obtenus / points possibles, en %. 0 s'il n'y a pas encore de question."""
+    return round(100 * (points or 0) / (ETAPES_ACQUIS * questions)) if questions else 0
 
 
 def _resume(cartes):
-    agg = cartes.aggregate(
-        questions=Count("id"),
-        maitrisees=Count("id", filter=Q(interval__gte=MAITRISE_JOURS)),
-        reponses=Sum("review_count"),
-        justes=Sum("correct_count"),
-    )
-    reponses = agg["reponses"] or 0
-    return {
-        "questions": agg["questions"],
-        "maitrise": _pourcentage(agg["maitrisees"], agg["questions"]) or 0,
-        "reussite": _pourcentage(agg["justes"] or 0, reponses),
-        "reponses": reponses,
-    }
+    agg = cartes.aggregate(questions=Count("id"), points=points_acquis())
+    return {"questions": agg["questions"], "acquis": pourcentage_acquis(agg["points"], agg["questions"])}
 
 
 def progression_cours(user, course):
@@ -33,22 +32,17 @@ def progression_cours(user, course):
         ligne["chapter_id"]: ligne
         for ligne in cartes.order_by()
         .values(chapter_id=F("question__quiz__chapter_id"))
-        .annotate(
-            questions=Count("id"),
-            maitrisees=Count("id", filter=Q(interval__gte=MAITRISE_JOURS)),
-        )
+        .annotate(questions=Count("id"), points=points_acquis())
     }
     chapitres = []
     for chapitre in course.chapters.all():
-        ligne = par_chapitre.get(chapitre.pk)
-        if ligne:
-            chapitres.append({
-                "chapter": chapitre,
-                "questions": ligne["questions"],
-                "maitrise": _pourcentage(ligne["maitrisees"], ligne["questions"]) or 0,
-            })
-        else:
-            chapitres.append({"chapter": chapitre, "questions": 0, "maitrise": 0})
+        ligne = par_chapitre.get(chapitre.pk, {})
+        questions = ligne.get("questions", 0)
+        chapitres.append({
+            "chapter": chapitre,
+            "questions": questions,
+            "acquis": pourcentage_acquis(ligne.get("points"), questions),
+        })
     return {"resume": _resume(cartes), "chapitres": chapitres}
 
 
